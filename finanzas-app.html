@@ -1,0 +1,2227 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#126c74">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Mi plata al día">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./icon.svg">
+  <title>Control de dinero y deudas</title>
+  <style>
+    :root {
+      --bg: #f5f7f9;
+      --panel: #ffffff;
+      --ink: #17202a;
+      --muted: #607083;
+      --line: #dbe3ea;
+      --brand: #126c74;
+      --brand-dark: #0a4d55;
+      --accent: #42cbbb;
+      --good: #197a4a;
+      --warn: #b45c16;
+      --bad: #b33b3b;
+      --soft-good: #e7f6ee;
+      --soft-warn: #fff1df;
+      --soft-bad: #ffe9e9;
+      --shadow: 0 10px 24px rgba(20, 32, 43, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+
+    button, input, select {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+    }
+
+    .app-shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+    }
+
+    aside {
+      background: #10242d;
+      color: #f7fbfd;
+      padding: 28px 22px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: #42cbbb;
+      color: #10242d;
+      font-weight: 900;
+      font-size: 22px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+
+    .sidebar-note {
+      color: #b7c8d1;
+      line-height: 1.5;
+      margin: 0;
+      font-size: 14px;
+    }
+
+    nav {
+      display: grid;
+      gap: 8px;
+    }
+
+    .nav-link {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 12px;
+      color: #e9f2f5;
+      background: transparent;
+      border-radius: 8px;
+      text-align: left;
+    }
+
+    .nav-link.active,
+    .nav-link:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .backup-panel {
+      display: grid;
+      gap: 8px;
+      margin-top: auto;
+    }
+
+    .backup-button {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.09);
+      color: #e9f2f5;
+      text-align: left;
+      font-weight: 700;
+    }
+
+    .backup-button:hover {
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    main {
+      padding: 28px;
+      display: grid;
+      gap: 24px;
+      align-content: start;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .topbar h2 {
+      margin: 0 0 4px;
+      font-size: 30px;
+      letter-spacing: 0;
+    }
+
+    .topbar p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .month-picker {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      padding: 9px 10px;
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .month-picker button {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: #edf3f5;
+      color: var(--brand-dark);
+      font-weight: 800;
+    }
+
+    .month-picker strong {
+      min-width: 150px;
+      text-align: center;
+    }
+
+    .eye-button {
+      width: 46px;
+      height: 46px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      color: var(--brand-dark);
+      box-shadow: var(--shadow);
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .eye-button:hover {
+      background: #edf8f6;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .metric {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+      min-height: 118px;
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 13px;
+      display: block;
+      margin-bottom: 10px;
+    }
+
+    .metric strong {
+      font-size: clamp(22px, 3vw, 34px);
+      line-height: 1;
+      display: block;
+      overflow-wrap: anywhere;
+    }
+
+    .metric small {
+      display: block;
+      color: var(--muted);
+      margin-top: 10px;
+      line-height: 1.35;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(320px, 0.85fr) minmax(360px, 1.15fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .section-head {
+      padding: 18px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .section-head h3 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .section-head p {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .body {
+      padding: 18px;
+    }
+
+    form {
+      display: grid;
+      gap: 12px;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .category-control {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 44px;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .icon-button {
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: #edf3f5;
+      color: var(--brand-dark);
+      font-size: 24px;
+      font-weight: 850;
+      line-height: 1;
+    }
+
+    .icon-button:hover {
+      background: #dfecef;
+    }
+
+    .span-two {
+      grid-column: 1 / -1;
+    }
+
+    .inline-adder {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: end;
+      padding: 12px;
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      background: #fbfcfd;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 13px;
+      min-width: 0;
+    }
+
+    input, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 11px 12px;
+      background: #fbfcfd;
+      color: var(--ink);
+      min-width: 0;
+    }
+
+    input:focus, select:focus {
+      outline: 3px solid rgba(18, 108, 116, 0.16);
+      border-color: var(--brand);
+    }
+
+    .primary {
+      min-height: 42px;
+      padding: 10px 14px;
+      background: var(--brand);
+      color: #fff;
+      border-radius: 8px;
+      font-weight: 750;
+    }
+
+    .ghost {
+      min-height: 38px;
+      padding: 8px 12px;
+      background: #edf3f5;
+      color: var(--brand-dark);
+      border-radius: 8px;
+      font-weight: 700;
+    }
+
+    .danger {
+      background: var(--soft-bad);
+      color: var(--bad);
+    }
+
+    .list {
+      display: grid;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .item {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 13px;
+      display: grid;
+      gap: 8px;
+      background: #fcfdfd;
+    }
+
+    .item-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .item-title {
+      min-width: 0;
+    }
+
+    .item-title strong,
+    .item-title span {
+      overflow-wrap: anywhere;
+    }
+
+    .item-title span {
+      display: block;
+      color: var(--muted);
+      margin-top: 3px;
+      font-size: 13px;
+    }
+
+    .money {
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip {
+      font-size: 12px;
+      color: var(--muted);
+      background: #eef3f6;
+      border-radius: 999px;
+      padding: 5px 8px;
+    }
+
+    .item-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 680px;
+    }
+
+    th, td {
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .status.good { color: var(--good); background: var(--soft-good); }
+    .status.warn { color: var(--warn); background: var(--soft-warn); }
+    .status.bad { color: var(--bad); background: var(--soft-bad); }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tab {
+      background: #edf3f5;
+      color: var(--brand-dark);
+      padding: 8px 11px;
+      border-radius: 8px;
+      font-weight: 750;
+    }
+
+    .tab.active {
+      background: var(--brand);
+      color: #fff;
+    }
+
+    .hidden { display: none !important; }
+
+    .empty {
+      color: var(--muted);
+      text-align: center;
+      padding: 22px;
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      background: #fbfcfd;
+    }
+
+    .result-box {
+      margin-top: 14px;
+      border-radius: 8px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      background: #f7fafb;
+      line-height: 1.5;
+    }
+
+    .result-box.good { background: var(--soft-good); border-color: #b8e3ca; }
+    .result-box.warn { background: var(--soft-warn); border-color: #f0cc9d; }
+    .result-box.bad { background: var(--soft-bad); border-color: #f0b4b4; }
+
+    .calendar {
+      display: grid;
+      gap: 10px;
+    }
+
+    .report {
+      margin-top: 22px;
+      border-top: 1px solid var(--line);
+      padding-top: 18px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .report-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: end;
+      flex-wrap: wrap;
+    }
+
+    .report-head h3 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .report-head p {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .report-total {
+      text-align: right;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .report-total strong {
+      display: block;
+      color: var(--ink);
+      font-size: 22px;
+      overflow-wrap: anywhere;
+    }
+
+    .month-line {
+      display: grid;
+      grid-template-columns: 120px 1fr auto;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .bar {
+      height: 12px;
+      border-radius: 999px;
+      background: #e8eef2;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--brand), var(--accent));
+      min-width: 2px;
+    }
+
+    .month-detail {
+      grid-column: 2 / 4;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .detail-pill {
+      background: #eef8f7;
+      color: var(--brand-dark);
+      border-radius: 999px;
+      padding: 4px 8px;
+    }
+
+    @media (max-width: 1020px) {
+      .app-shell { grid-template-columns: 1fr; }
+      aside {
+        position: static;
+        height: auto;
+        gap: 20px;
+      }
+      nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 620px) {
+      main { padding: 18px; }
+      aside { padding: 22px 18px; }
+      nav { grid-template-columns: 1fr; }
+      .summary-grid { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+      .topbar h2 { font-size: 25px; }
+      .month-picker { width: 100%; justify-content: space-between; }
+      .month-picker strong { min-width: 120px; }
+      .month-line { grid-template-columns: 1fr; gap: 7px; }
+      .item-row { display: grid; }
+      .money { white-space: normal; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside>
+      <div class="brand">
+        <div class="brand-mark">$</div>
+        <h1>Mi plata<br>al día</h1>
+      </div>
+      <p class="sidebar-note">Registrá dinero disponible, tarjetas, cuotas, actividades y gastos fijos. Después evaluá compras nuevas contra tu margen mensual real.</p>
+      <nav aria-label="Secciones">
+        <button class="nav-link active" data-target="dashboard">⌂ Resumen</button>
+        <button class="nav-link" data-target="wallet">＋ Dinero</button>
+        <button class="nav-link" data-target="debts">▣ Deudas y gastos</button>
+        <button class="nav-link" data-target="cards">▤ Tarjetas</button>
+        <button class="nav-link" data-target="planner">◆ Evaluar compra</button>
+      </nav>
+      <div class="backup-panel">
+        <button id="exportData" class="backup-button" type="button">⇩ Exportar datos</button>
+        <button id="importData" class="backup-button" type="button">⇧ Importar datos</button>
+        <input id="importFile" type="file" accept="application/json,.json" class="hidden">
+      </div>
+    </aside>
+
+    <main>
+      <div class="topbar">
+        <div>
+          <h2 id="topTitle">Control mensual</h2>
+          <p id="topSubtitle">Todo lo que cargues se guarda en este navegador.</p>
+        </div>
+        <div class="top-actions">
+          <button id="toggleAmounts" class="eye-button" type="button" title="Ocultar montos">◉</button>
+          <div id="monthPickerPanel" class="month-picker" aria-label="Selector de mes">
+            <button id="prevMonth" title="Mes anterior">‹</button>
+            <strong id="currentMonthLabel"></strong>
+            <button id="nextMonth" title="Mes siguiente">›</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="summary-grid" id="summary"></div>
+
+      <section id="dashboard" class="view">
+        <div class="section-head">
+          <div>
+            <h3>Este mes</h3>
+            <p>Obligaciones, cuotas activas y margen estimado.</p>
+          </div>
+          <span id="healthStatus" class="status good"></span>
+        </div>
+        <div class="body">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Cuenta</th>
+                  <th>Categoría</th>
+                  <th>Detalle</th>
+                  <th>Cuota</th>
+                  <th>Monto</th>
+                </tr>
+              </thead>
+              <tbody id="monthlyRows"></tbody>
+            </table>
+          </div>
+          <div id="monthlyEmpty" class="empty hidden">No tenés pagos cargados para este mes.</div>
+          <div class="report">
+            <div class="report-head">
+              <div>
+                <h3>Reporte mensual</h3>
+                <p>Gastos proyectados desde este mes hasta finalizar las cuotas cargadas.</p>
+              </div>
+              <div class="report-total">
+                Total del período
+                <strong id="reportTotal"></strong>
+              </div>
+            </div>
+            <div id="monthlyReport" class="calendar"></div>
+          </div>
+          <div class="report">
+            <div class="report-head">
+              <div>
+                <h3>Control de pagos del mes</h3>
+                <p>Gasto del mes, pagos registrados, pendiente y dinero restante.</p>
+              </div>
+            </div>
+            <div id="monthlyPaymentStatus" class="summary-grid"></div>
+          </div>
+        </div>
+      </section>
+
+      <div class="grid">
+        <section id="wallet" class="view hidden">
+          <div class="section-head">
+            <div>
+              <h3>Dinero disponible</h3>
+              <p>Efectivo, transferencia, billeteras o cuentas.</p>
+            </div>
+          </div>
+          <div class="body">
+            <form id="moneyForm">
+              <div class="form-grid">
+                <label>Cuenta o lugar
+                  <input id="moneyName" placeholder="Ej: Efectivo, Mercado Pago" required>
+                </label>
+                <label>Tipo
+                  <select id="moneyType">
+                    <option>Efectivo</option>
+                    <option>Transferencia</option>
+                    <option>Mercado Pago</option>
+                    <option>Banco</option>
+                    <option>Billetera virtual</option>
+                    <option>Billetera virtual / MP</option>
+                    <option>Ahorro</option>
+                  </select>
+                </label>
+                <label>Monto
+                  <input id="moneyAmount" type="number" min="0" step="0.01" placeholder="0" required>
+                </label>
+                <label>Notas
+                  <input id="moneyNote" placeholder="Opcional">
+                </label>
+              </div>
+              <div class="form-actions">
+                <button id="moneySubmit" class="primary" type="submit">Agregar dinero</button>
+                <button id="moneyCancel" class="ghost hidden" type="button">Cancelar edición</button>
+              </div>
+            </form>
+            <div class="list" id="moneyList"></div>
+          </div>
+        </section>
+
+        <section id="debts" class="view hidden">
+          <div class="section-head">
+            <div>
+              <h3>Deudas, cuotas y gastos</h3>
+              <p>Cargá deudas/gastos por un lado y registrá pagos por otro.</p>
+            </div>
+          </div>
+          <div class="body">
+            <form id="debtForm">
+              <div class="form-grid">
+                <label>Qué estás pagando
+                  <input id="debtName" placeholder="Ej: Televisor, gimnasio, internet" required>
+                </label>
+                <label>Categoría
+                  <span class="category-control">
+                    <select id="debtCategory" required></select>
+                    <button id="addCategory" class="icon-button" type="button" title="Agregar categoría">+</button>
+                  </span>
+                </label>
+                <div id="categoryAdder" class="inline-adder span-two hidden">
+                  <label>Nueva categoría
+                    <input id="newCategoryName" placeholder="Ej: Tarjeta Naranja, alquiler, club">
+                  </label>
+                  <button id="saveCategory" class="ghost" type="button">Guardar</button>
+                </div>
+                <label>Monto mensual / cuota
+                  <input id="debtAmount" type="number" min="0" step="0.01" placeholder="0" required>
+                </label>
+                <label class="installment-field">Cuotas totales
+                  <input id="debtInstallments" type="number" min="1" step="1" value="1" required>
+                </label>
+                <label class="installment-field">Cuota actual
+                  <input id="debtCurrentInstallment" type="number" min="1" step="1" value="1" placeholder="Ej: 3" required>
+                </label>
+                <label>Mes desde el que lo querés ver
+                  <input id="debtStart" type="month" required>
+                </label>
+                <label>Tipo
+                  <select id="debtType">
+                    <option value="installment">Cuotas</option>
+                    <option value="fixed">Gasto fijo mensual</option>
+                  </select>
+                </label>
+                <label>Notas
+                  <input id="debtNote" placeholder="Ej: compra en 12 cuotas">
+                </label>
+              </div>
+              <div class="form-actions">
+                <button id="debtSubmit" class="primary" type="submit">Agregar deuda/gasto</button>
+                <button id="debtCancel" class="ghost hidden" type="button">Cancelar edición</button>
+              </div>
+            </form>
+            <div class="list" id="debtList"></div>
+
+            <div class="section-head" style="padding-left:0;padding-right:0;margin-top:18px;border-top:1px solid var(--line);">
+              <div>
+                <h3>Registrar pago</h3>
+                <p>Usá esto cuando ya pagaste una deuda o gasto común, total o parcialmente.</p>
+              </div>
+            </div>
+            <form id="debtPaymentForm">
+              <div class="form-grid">
+                <label>Deuda o gasto
+                  <select id="debtPaymentDebt" required></select>
+                </label>
+                <label>Mes pagado
+                  <input id="debtPaymentMonth" type="month" required>
+                </label>
+                <label>Monto pagado
+                  <input id="debtPaymentAmount" type="number" min="0" step="0.01" placeholder="0" required>
+                </label>
+                <label>Notas
+                  <input id="debtPaymentNote" placeholder="Ej: pagué una parte, transferencia">
+                </label>
+              </div>
+              <div class="form-actions">
+                <button class="primary" type="submit">Registrar pago</button>
+              </div>
+            </form>
+            <div class="list" id="debtPaymentList"></div>
+          </div>
+        </section>
+
+        <section id="cards" class="view hidden">
+          <div class="section-head">
+            <div>
+              <h3>Tarjetas de crédito</h3>
+              <p>Compras, pagos del resumen y saldos financiados por tarjeta.</p>
+            </div>
+          </div>
+          <div class="body">
+            <form id="cardForm">
+              <div class="form-grid">
+                <label>Nueva tarjeta
+                  <input id="cardName" placeholder="Ej: Cordobesa, Cremos, Visa banco" required>
+                </label>
+              </div>
+              <div class="form-actions">
+                <button class="primary" type="submit">Agregar tarjeta</button>
+              </div>
+            </form>
+
+            <div class="list" id="cardList"></div>
+
+            <div class="section-head" style="padding-left:0;padding-right:0;margin-top:18px;border-top:1px solid var(--line);">
+              <div>
+                <h3>Compra con tarjeta</h3>
+                <p>Cargá compras realizadas con una tarjeta específica.</p>
+              </div>
+            </div>
+            <form id="cardPurchaseForm">
+              <div class="form-grid">
+                <label>Tarjeta
+                  <select id="cardPurchaseCard" required></select>
+                </label>
+                <label>Compra
+                  <input id="cardPurchaseName" placeholder="Ej: Supermercado, televisor, farmacia" required>
+                </label>
+                <label>Monto total
+                  <input id="cardPurchaseTotal" type="number" min="0" step="0.01" placeholder="0" required>
+                </label>
+                <label>Cuotas totales
+                  <input id="cardPurchaseInstallments" type="number" min="1" step="1" value="1" required>
+                </label>
+                <label>Valor de cada cuota
+                  <input id="cardPurchaseInstallmentAmount" type="number" min="0" step="0.01" placeholder="Se calcula si lo dejás vacío">
+                </label>
+                <label>Cuota actual
+                  <input id="cardPurchaseCurrentInstallment" type="number" min="1" step="1" value="1" required>
+                </label>
+                <label>Mes de inicio
+                  <input id="cardPurchaseStart" type="month" required>
+                </label>
+                <label>Notas
+                  <input id="cardPurchaseNote" placeholder="Opcional">
+                </label>
+              </div>
+              <div class="form-actions">
+                <button class="primary" type="submit">Agregar compra</button>
+              </div>
+            </form>
+
+            <div class="list" id="cardPurchaseList"></div>
+
+            <div class="section-head" style="padding-left:0;padding-right:0;margin-top:18px;border-top:1px solid var(--line);">
+              <div>
+                <h3>Pago del resumen</h3>
+                <p>Registrá cuánto pagaste y qué saldo queda financiado.</p>
+              </div>
+            </div>
+            <form id="cardPaymentForm">
+              <div class="form-grid">
+                <label>Tarjeta
+                  <select id="cardPaymentCard" required></select>
+                </label>
+                <label>Mes del resumen
+                  <input id="cardPaymentMonth" type="month" required>
+                </label>
+                <label>Total del resumen
+                  <input id="cardStatementTotal" type="number" min="0" step="0.01" placeholder="0" required>
+                </label>
+                <label>Monto pagado
+                  <input id="cardPaidAmount" type="number" min="0" step="0.01" placeholder="0" required>
+                </label>
+                <label>Saldo financiado
+                  <input id="cardFinancedAmount" type="number" min="0" step="0.01" placeholder="Se calcula si lo dejás vacío">
+                </label>
+                <label>Cuotas financiación
+                  <input id="cardFinancedInstallments" type="number" min="1" step="1" value="1">
+                </label>
+                <label>Valor cuota financiada
+                  <input id="cardFinancedInstallmentAmount" type="number" min="0" step="0.01" placeholder="Se calcula si lo dejás vacío">
+                </label>
+                <label>Notas
+                  <input id="cardPaymentNote" placeholder="Ej: pagué mínimo, refinanciación">
+                </label>
+              </div>
+              <div class="form-actions">
+                <button class="primary" type="submit">Registrar pago</button>
+              </div>
+            </form>
+
+            <div class="list" id="cardPaymentList"></div>
+          </div>
+        </section>
+      </div>
+
+      <section id="planner" class="view hidden">
+        <div class="section-head">
+          <div>
+            <h3>Evaluar una compra</h3>
+            <p>Probá el impacto antes de comprar algo nuevo.</p>
+          </div>
+        </div>
+        <div class="body">
+          <form id="planForm">
+            <div class="form-grid">
+              <label>Compra
+                <input id="planName" placeholder="Ej: Celular, heladera, viaje" required>
+              </label>
+              <label>Monto total
+                <input id="planTotal" type="number" min="0" step="0.01" placeholder="0" required>
+              </label>
+              <label>Cuotas
+                <input id="planInstallments" type="number" min="1" step="1" value="1" required>
+              </label>
+              <label>Primer mes
+                <input id="planStart" type="month" required>
+              </label>
+              <label>Margen mínimo que querés conservar
+                <input id="planReserve" type="number" min="0" step="0.01" value="0">
+              </label>
+            </div>
+            <button class="primary" type="submit">Evaluar impacto</button>
+          </form>
+          <div id="planResult" class="result-box hidden"></div>
+          <div class="section-head" style="padding-left:0;padding-right:0;margin-top:18px;border-top:1px solid var(--line);">
+            <div>
+              <h3>Próximos 12 meses</h3>
+              <p>Vista estimada de pagos comprometidos.</p>
+            </div>
+          </div>
+          <div class="calendar" id="calendar"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const storageKey = "mi-plata-al-dia-v1";
+    const monthNames = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+    const defaultCategories = ["Tarjeta Cordobesa", "Tarjeta Visa", "Tarjeta Mastercard", "Actividad", "Servicio", "Préstamo", "Alquiler", "Impuestos", "Supermercado", "Otro"];
+
+    const state = loadState();
+    let selectedMonth = toMonthKey(new Date());
+    let amountsHidden = localStorage.getItem(`${storageKey}-amounts-hidden`) === "true";
+    let currentView = "dashboard";
+    let moneyEditingId = null;
+    let debtEditingId = null;
+
+    const els = {
+      summary: document.querySelector("#summary"),
+      topTitle: document.querySelector("#topTitle"),
+      topSubtitle: document.querySelector("#topSubtitle"),
+      currentMonthLabel: document.querySelector("#currentMonthLabel"),
+      monthPickerPanel: document.querySelector("#monthPickerPanel"),
+      monthlyRows: document.querySelector("#monthlyRows"),
+      monthlyEmpty: document.querySelector("#monthlyEmpty"),
+      monthlyReport: document.querySelector("#monthlyReport"),
+      monthlyPaymentStatus: document.querySelector("#monthlyPaymentStatus"),
+      reportTotal: document.querySelector("#reportTotal"),
+      healthStatus: document.querySelector("#healthStatus"),
+      toggleAmounts: document.querySelector("#toggleAmounts"),
+      moneyList: document.querySelector("#moneyList"),
+      debtList: document.querySelector("#debtList"),
+      debtPaymentList: document.querySelector("#debtPaymentList"),
+      calendar: document.querySelector("#calendar"),
+      planResult: document.querySelector("#planResult"),
+      debtCategory: document.querySelector("#debtCategory"),
+      categoryAdder: document.querySelector("#categoryAdder"),
+      newCategoryName: document.querySelector("#newCategoryName"),
+      moneySubmit: document.querySelector("#moneySubmit"),
+      moneyCancel: document.querySelector("#moneyCancel"),
+      debtSubmit: document.querySelector("#debtSubmit"),
+      debtCancel: document.querySelector("#debtCancel"),
+      debtPaymentDebt: document.querySelector("#debtPaymentDebt"),
+      exportData: document.querySelector("#exportData"),
+      importData: document.querySelector("#importData"),
+      importFile: document.querySelector("#importFile"),
+      cardList: document.querySelector("#cardList"),
+      cardPurchaseList: document.querySelector("#cardPurchaseList"),
+      cardPaymentList: document.querySelector("#cardPaymentList"),
+      cardPurchaseCard: document.querySelector("#cardPurchaseCard"),
+      cardPaymentCard: document.querySelector("#cardPaymentCard")
+    };
+
+    document.querySelector("#debtStart").value = selectedMonth;
+    document.querySelector("#debtPaymentMonth").value = selectedMonth;
+    document.querySelector("#planStart").value = selectedMonth;
+    document.querySelector("#cardPurchaseStart").value = selectedMonth;
+    document.querySelector("#cardPaymentMonth").value = selectedMonth;
+
+    document.querySelectorAll(".nav-link").forEach(button => {
+      button.addEventListener("click", () => showView(button.dataset.target));
+    });
+
+    document.querySelector("#prevMonth").addEventListener("click", () => {
+      selectedMonth = addMonths(selectedMonth, -1);
+      render();
+    });
+
+    document.querySelector("#nextMonth").addEventListener("click", () => {
+      selectedMonth = addMonths(selectedMonth, 1);
+      render();
+    });
+
+    els.toggleAmounts.addEventListener("click", () => {
+      amountsHidden = !amountsHidden;
+      localStorage.setItem(`${storageKey}-amounts-hidden`, String(amountsHidden));
+      render();
+    });
+
+    els.exportData.addEventListener("click", exportBackup);
+    els.importData.addEventListener("click", () => els.importFile.click());
+    els.importFile.addEventListener("change", importBackup);
+
+    document.querySelector("#addCategory").addEventListener("click", () => {
+      els.categoryAdder.classList.toggle("hidden");
+      if (!els.categoryAdder.classList.contains("hidden")) {
+        els.newCategoryName.focus();
+      }
+    });
+
+    document.querySelector("#saveCategory").addEventListener("click", () => {
+      saveNewCategory();
+    });
+
+    els.newCategoryName.addEventListener("keydown", event => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        saveNewCategory();
+      }
+    });
+
+    document.querySelector("#debtType").addEventListener("change", updateInstallmentFields);
+    document.querySelector("#debtInstallments").addEventListener("input", syncCurrentInstallmentLimit);
+
+    document.querySelector("#moneyForm").addEventListener("submit", event => {
+      event.preventDefault();
+      const payload = {
+        id: moneyEditingId || createId(),
+        name: value("#moneyName"),
+        type: value("#moneyType"),
+        amount: numberValue("#moneyAmount"),
+        note: value("#moneyNote")
+      };
+      if (moneyEditingId) {
+        state.money = state.money.map(item => item.id === moneyEditingId ? payload : item);
+      } else {
+        state.money.push(payload);
+      }
+      resetMoneyForm();
+      saveState();
+      render();
+    });
+
+    document.querySelector("#debtForm").addEventListener("submit", event => {
+      event.preventDefault();
+      const type = value("#debtType");
+      const installments = Math.max(1, Math.floor(numberValue("#debtInstallments")));
+      const currentInstallment = Math.min(installments, Math.max(1, Math.floor(numberValue("#debtCurrentInstallment"))));
+      addCategory(value("#debtCategory"));
+      const payload = {
+        id: debtEditingId || createId(),
+        name: value("#debtName"),
+        category: value("#debtCategory"),
+        amount: numberValue("#debtAmount"),
+        installments: type === "fixed" ? 999 : installments,
+        startInstallment: type === "fixed" ? 1 : currentInstallment,
+        startMonth: value("#debtStart"),
+        type,
+        note: value("#debtNote")
+      };
+      if (debtEditingId) {
+        state.debts = state.debts.map(item => item.id === debtEditingId ? payload : item);
+      } else {
+        state.debts.push(payload);
+      }
+      resetDebtForm();
+      saveState();
+      render();
+    });
+
+    els.moneyCancel.addEventListener("click", resetMoneyForm);
+    els.debtCancel.addEventListener("click", resetDebtForm);
+
+    document.querySelector("#planForm").addEventListener("submit", event => {
+      event.preventDefault();
+      evaluatePurchase();
+    });
+
+    document.querySelector("#debtPaymentForm").addEventListener("submit", event => {
+      event.preventDefault();
+      state.debtPayments.push({
+        id: createId(),
+        debtId: value("#debtPaymentDebt"),
+        month: value("#debtPaymentMonth"),
+        amount: numberValue("#debtPaymentAmount"),
+        note: value("#debtPaymentNote")
+      });
+      event.target.reset();
+      document.querySelector("#debtPaymentMonth").value = selectedMonth;
+      saveState();
+      render();
+    });
+
+    document.querySelector("#cardForm").addEventListener("submit", event => {
+      event.preventDefault();
+      const name = value("#cardName");
+      if (!name) return;
+      state.cards.push({ id: createId(), name });
+      event.target.reset();
+      saveState();
+      render();
+    });
+
+    document.querySelector("#cardPurchaseForm").addEventListener("submit", event => {
+      event.preventDefault();
+      const total = numberValue("#cardPurchaseTotal");
+      const installments = Math.max(1, Math.floor(numberValue("#cardPurchaseInstallments")));
+      const installmentAmount = numberValue("#cardPurchaseInstallmentAmount") || total / installments;
+      const currentInstallment = Math.min(installments, Math.max(1, Math.floor(numberValue("#cardPurchaseCurrentInstallment"))));
+      state.cardPurchases.push({
+        id: createId(),
+        cardId: value("#cardPurchaseCard"),
+        name: value("#cardPurchaseName"),
+        total,
+        amount: installmentAmount,
+        installments,
+        startInstallment: currentInstallment,
+        startMonth: value("#cardPurchaseStart"),
+        note: value("#cardPurchaseNote")
+      });
+      event.target.reset();
+      document.querySelector("#cardPurchaseStart").value = selectedMonth;
+      document.querySelector("#cardPurchaseInstallments").value = 1;
+      document.querySelector("#cardPurchaseCurrentInstallment").value = 1;
+      saveState();
+      render();
+    });
+
+    document.querySelector("#cardPaymentForm").addEventListener("submit", event => {
+      event.preventDefault();
+      const statementTotal = numberValue("#cardStatementTotal");
+      const paidAmount = numberValue("#cardPaidAmount");
+      const pendingAmount = Math.max(0, statementTotal - paidAmount);
+      const financedAmount = numberValue("#cardFinancedAmount") || pendingAmount;
+      const financedInstallments = financedAmount > 0 ? Math.max(1, Math.floor(numberValue("#cardFinancedInstallments"))) : 0;
+      const financedInstallmentAmount = financedInstallments > 0
+        ? numberValue("#cardFinancedInstallmentAmount") || financedAmount / financedInstallments
+        : 0;
+      state.cardPayments.push({
+        id: createId(),
+        cardId: value("#cardPaymentCard"),
+        month: value("#cardPaymentMonth"),
+        statementTotal,
+        paidAmount,
+        pendingAmount,
+        financedAmount,
+        financedInstallments,
+        financedInstallmentAmount,
+        note: value("#cardPaymentNote")
+      });
+      event.target.reset();
+      document.querySelector("#cardPaymentMonth").value = selectedMonth;
+      document.querySelector("#cardFinancedInstallments").value = 1;
+      saveState();
+      render();
+    });
+
+    function loadState() {
+      const fallback = {
+        money: [
+          { id: createId(), name: "Efectivo", type: "Efectivo", amount: 0, note: "" },
+          { id: createId(), name: "Transferencia", type: "Transferencia", amount: 0, note: "" }
+        ],
+        debts: [],
+        debtPayments: [],
+        categories: [...defaultCategories],
+        cards: [
+          { id: createId(), name: "Tarjeta Cordobesa" },
+          { id: createId(), name: "Tarjeta Cremos" }
+        ],
+        cardPurchases: [],
+        cardPayments: []
+      };
+      try {
+        const saved = JSON.parse(localStorage.getItem(storageKey)) || fallback;
+        return {
+          money: Array.isArray(saved.money) ? saved.money : fallback.money,
+          debts: Array.isArray(saved.debts) ? saved.debts : fallback.debts,
+          debtPayments: Array.isArray(saved.debtPayments) ? saved.debtPayments : [],
+          categories: Array.isArray(saved.categories) ? saved.categories : [...defaultCategories],
+          cards: Array.isArray(saved.cards) ? saved.cards : fallback.cards,
+          cardPurchases: Array.isArray(saved.cardPurchases) ? saved.cardPurchases : [],
+          cardPayments: Array.isArray(saved.cardPayments) ? saved.cardPayments : []
+        };
+      } catch {
+        return fallback;
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem(storageKey, JSON.stringify(state));
+    }
+
+    function exportBackup() {
+      const backup = {
+        app: "Mi plata al día",
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        data: state
+      };
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `mi-plata-respaldo-${toMonthKey(new Date())}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function importBackup(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const parsed = JSON.parse(String(reader.result));
+          const imported = normalizeImportedState(parsed.data || parsed);
+          if (!confirm("¿Importar este respaldo y reemplazar los datos actuales de esta app?")) return;
+          state.money = imported.money;
+          state.debts = imported.debts;
+          state.debtPayments = imported.debtPayments;
+          state.categories = imported.categories;
+          state.cards = imported.cards;
+          state.cardPurchases = imported.cardPurchases;
+          state.cardPayments = imported.cardPayments;
+          resetMoneyForm();
+          resetDebtForm();
+          saveState();
+          render();
+        } catch {
+          alert("No pude importar ese archivo. Revisá que sea un respaldo JSON de esta app.");
+        } finally {
+          els.importFile.value = "";
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function normalizeImportedState(imported) {
+      if (!imported || !Array.isArray(imported.money) || !Array.isArray(imported.debts)) {
+        throw new Error("Invalid backup");
+      }
+      return {
+        money: imported.money.map(item => ({
+          id: item.id || createId(),
+          name: String(item.name || "Sin nombre"),
+          type: String(item.type || "Otro"),
+          amount: Number(item.amount) || 0,
+          note: String(item.note || "")
+        })),
+        debts: imported.debts.map(item => ({
+          id: item.id || createId(),
+          name: String(item.name || "Sin nombre"),
+          category: String(item.category || "Otro"),
+          amount: Number(item.amount) || 0,
+          installments: Math.max(1, Math.floor(Number(item.installments) || 1)),
+          startInstallment: Math.max(1, Math.floor(Number(item.startInstallment) || 1)),
+          startMonth: item.startMonth || selectedMonth,
+          type: item.type === "fixed" ? "fixed" : "installment",
+          note: String(item.note || "")
+        })),
+        debtPayments: Array.isArray(imported.debtPayments) ? imported.debtPayments.map(item => ({
+          id: item.id || createId(),
+          debtId: item.debtId || "",
+          month: item.month || selectedMonth,
+          amount: Number(item.amount) || 0,
+          note: String(item.note || "")
+        })) : [],
+        categories: Array.isArray(imported.categories) ? imported.categories.map(String) : [...defaultCategories],
+        cards: Array.isArray(imported.cards) ? imported.cards.map(item => ({
+          id: item.id || createId(),
+          name: String(item.name || "Tarjeta")
+        })) : [],
+        cardPurchases: Array.isArray(imported.cardPurchases) ? imported.cardPurchases.map(item => ({
+          id: item.id || createId(),
+          cardId: item.cardId || "",
+          name: String(item.name || "Compra"),
+          total: Number(item.total) || 0,
+          amount: Number(item.amount) || 0,
+          installments: Math.max(1, Math.floor(Number(item.installments) || 1)),
+          startInstallment: Math.max(1, Math.floor(Number(item.startInstallment) || 1)),
+          startMonth: item.startMonth || selectedMonth,
+          note: String(item.note || "")
+        })) : [],
+        cardPayments: Array.isArray(imported.cardPayments) ? imported.cardPayments.map(item => ({
+          id: item.id || createId(),
+          cardId: item.cardId || "",
+          month: item.month || selectedMonth,
+          statementTotal: Number(item.statementTotal) || 0,
+          paidAmount: Number(item.paidAmount) || 0,
+          pendingAmount: Number(item.pendingAmount) || 0,
+          financedAmount: Number(item.financedAmount) || 0,
+          financedInstallments: Math.max(0, Math.floor(Number(item.financedInstallments) || 0)),
+          financedInstallmentAmount: Number(item.financedInstallmentAmount) || 0,
+          note: String(item.note || "")
+        })) : []
+      };
+    }
+
+    function showView(id) {
+      currentView = id;
+      document.querySelectorAll(".view").forEach(view => view.classList.toggle("hidden", view.id !== id));
+      document.querySelectorAll(".nav-link").forEach(button => button.classList.toggle("active", button.dataset.target === id));
+      render();
+    }
+
+    function render() {
+      els.currentMonthLabel.textContent = formatMonth(selectedMonth);
+      renderSectionHeader();
+      renderSummary();
+      renderMonthlyRows();
+      renderMoney();
+      renderDebts();
+      renderDebtPayments();
+      renderCalendar();
+      renderMonthlyReport();
+      renderMonthlyPaymentStatus();
+      renderCategoryOptions();
+      renderDebtPaymentSelect();
+      renderCards();
+      renderCardSelects();
+      renderAmountToggle();
+    }
+
+    function renderSectionHeader() {
+      const copy = {
+        dashboard: ["Control mensual", "Resumen del mes seleccionado y proyección hasta terminar cuotas."],
+        wallet: ["Dinero disponible", "Disponible real por efectivo, transferencia, banco y billeteras."],
+        debts: ["Deudas y gastos", "Pagos del mes seleccionado, cuotas activas y categorías."],
+        cards: ["Tarjetas", "Compras por tarjeta, pagos reales y financiación pendiente."],
+        planner: ["Evaluar compra", "Probá una compra nueva contra tu margen antes de hacerla."]
+      };
+      const [title, subtitle] = copy[currentView] || copy.dashboard;
+      els.topTitle.textContent = title;
+      els.topSubtitle.textContent = subtitle;
+      els.monthPickerPanel.classList.toggle("hidden", currentView === "wallet");
+    }
+
+    function renderSummary() {
+      if (currentView === "wallet") {
+        renderWalletSummary();
+        return;
+      }
+      if (currentView === "debts") {
+        renderDebtSummary();
+        return;
+      }
+      if (currentView === "cards") {
+        renderCardSummary();
+        return;
+      }
+
+      const cash = totalMoney();
+      const monthPayments = paymentsForMonth(selectedMonth);
+      const committed = sum(monthPayments.map(payment => payment.amount));
+      const monthInstallments = monthPayments.filter(payment => payment.type !== "fixed");
+      const installmentTotal = sum(monthInstallments.map(payment => payment.amount));
+      const remaining = cash - committed;
+      const ratio = cash > 0 ? committed / cash : committed > 0 ? 1 : 0;
+      const health = remaining < 0 ? ["bad", "En rojo"] : ratio > 0.7 ? ["warn", "Ajustado"] : ["good", "Ordenado"];
+
+      els.healthStatus.className = `status ${health[0]}`;
+      els.healthStatus.textContent = health[1];
+      els.summary.innerHTML = [
+        metric("Dinero cargado", money(cash), "Efectivo, transferencias y cuentas."),
+        metric(`A pagar en ${formatMonth(selectedMonth)}`, money(committed), `${monthPayments.length} obligaciones activas este mes.`),
+        metric("Margen estimado", money(remaining), remaining >= 0 ? "Disponible después de pagar." : "Falta cubrir este mes."),
+        metric("Cuotas del mes", money(installmentTotal), installmentHelper(monthInstallments))
+      ].join("");
+    }
+
+    function renderWalletSummary() {
+      const typeTotals = totalsBy(state.money, item => item.type);
+      const cards = [
+        metric("Dinero disponible", money(totalMoney()), `${state.money.length} cuentas cargadas.`)
+      ];
+
+      if (!typeTotals.length) {
+        cards.push(metric("Sin cuentas", money(0), "Agregá efectivo, transferencia, MP o banco."));
+      } else {
+        cards.push(...typeTotals.map(group => {
+          return metric(group.label, money(group.total), `${group.count} cuenta${group.count === 1 ? "" : "s"} cargada${group.count === 1 ? "" : "s"}.`);
+        }));
+      }
+
+      els.summary.innerHTML = cards.join("");
+    }
+
+    function renderDebtSummary() {
+      const monthPayments = paymentsForMonth(selectedMonth);
+      const installmentPayments = monthPayments.filter(payment => payment.type !== "fixed");
+      const fixedPayments = monthPayments.filter(payment => payment.type === "fixed");
+      const categoryTotals = totalsBy(monthPayments, payment => payment.category);
+
+      const cards = [
+        metric(`A pagar en ${formatMonth(selectedMonth)}`, money(sum(monthPayments.map(payment => payment.amount))), `${monthPayments.length} obligaciones activas este mes.`),
+        metric("Cuotas del mes", money(sum(installmentPayments.map(payment => payment.amount))), installmentHelper(installmentPayments)),
+        metric("Gastos fijos", money(sum(fixedPayments.map(payment => payment.amount))), fixedPayments.length ? `${fixedPayments.length} gastos mensuales.` : "Sin gastos fijos este mes."),
+        metric("Pagado deudas", money(sum(debtPaymentsForMonth(selectedMonth).map(payment => payment.amount))), "Pagos comunes registrados este mes.")
+      ];
+
+      if (!categoryTotals.length) {
+        cards.push(metric("Categorías", money(0), "Sin deudas activas este mes."));
+      } else {
+        cards.push(...summarizeGroups(categoryTotals, 5).map(group => metric(group.label, money(group.total), `${group.count} movimiento${group.count === 1 ? "" : "s"} este mes.`)));
+      }
+
+      els.summary.innerHTML = cards.join("");
+    }
+
+    function renderCardSummary() {
+      const control = monthlyControl(selectedMonth);
+      const paymentGroups = totalsBy(cardPaymentsForMonth(selectedMonth), payment => cardName(payment.cardId));
+      const cards = [
+        metric("Tarjetas creadas", state.cards.length, `${state.cardPurchases.length} compras cargadas.`),
+        metric("Resumen tarjetas", money(control.cardStatementTotal), "Total informado para este mes."),
+        metric("Pagado tarjetas", money(control.cardPaid), "Pagos registrados del mes."),
+        metric("Pendiente tarjetas", money(control.cardPending), "Saldo que todavía no se pagó."),
+        metric("Financiado", money(control.cardFinanced), "Saldo pasado a cuotas futuras.")
+      ];
+      cards.push(...summarizeGroups(paymentGroups, 4).map(group => {
+        return metric(group.label, money(group.total), `${group.count} pago${group.count === 1 ? "" : "s"} registrado${group.count === 1 ? "" : "s"}.`);
+      }));
+      els.summary.innerHTML = cards.join("");
+    }
+
+    function renderMonthlyPaymentStatus() {
+      const control = monthlyControl(selectedMonth);
+      els.monthlyPaymentStatus.innerHTML = [
+        metric("Total gastos del mes", money(control.monthExpenseTotal), "Gastos, cuotas y resumen de tarjetas."),
+        metric("Pagado registrado", money(control.totalPaid), "Tarjetas y deudas comunes pagadas."),
+        metric("Pendiente del mes", money(control.monthPending), "Gasto del mes menos pagos registrados."),
+        metric("Financiado", money(control.cardFinanced), "Saldo pasado a cuotas futuras."),
+        metric("Dinero restante", money(control.cashAfterRegisteredPayments), "Disponible luego de pagos registrados.")
+      ].join("");
+    }
+
+    function monthlyControl(monthKey) {
+      const payments = paymentsForMonth(monthKey);
+      const cardPurchasesDue = payments.filter(payment => payment.type === "cardPurchase");
+      const nonCardPurchaseDue = payments.filter(payment => payment.type !== "cardPurchase");
+      const cardPayments = cardPaymentsForMonth(monthKey);
+      const debtPayments = debtPaymentsForMonth(monthKey);
+      const cardPurchaseTotal = sum(cardPurchasesDue.map(payment => payment.amount));
+      const cardStatementTotal = sum(cardPayments.map(payment => payment.statementTotal));
+      const cardPaid = sum(cardPayments.map(payment => payment.paidAmount));
+      const debtPaid = sum(debtPayments.map(payment => payment.amount));
+      const totalPaid = cardPaid + debtPaid;
+      const cardPending = sum(cardPayments.map(payment => payment.pendingAmount));
+      const cardFinanced = sum(cardPayments.map(payment => payment.financedAmount));
+      const nonCardTotal = sum(nonCardPurchaseDue.map(payment => payment.amount));
+      const monthExpenseTotal = nonCardTotal + Math.max(cardPurchaseTotal, cardStatementTotal);
+      return {
+        monthExpenseTotal,
+        cardStatementTotal,
+        cardPaid,
+        debtPaid,
+        totalPaid,
+        cardPending,
+        monthPending: Math.max(0, monthExpenseTotal - totalPaid),
+        cardFinanced,
+        cashAfterRegisteredPayments: totalMoney() - totalPaid
+      };
+    }
+
+    function installmentHelper(installments) {
+      if (!installments.length) return "No hay cuotas activas este mes.";
+      const labels = installments
+        .slice(0, 2)
+        .map(payment => `${payment.name}: ${payment.installmentNumber}/${payment.installments}`);
+      const extra = installments.length > 2 ? ` y ${installments.length - 2} más` : "";
+      return `${labels.join(", ")}${extra}.`;
+    }
+
+    function renderCategoryOptions() {
+      const selectedCategory = els.debtCategory.value;
+      const categories = [...defaultCategories, ...state.categories, ...state.debts.map(debt => debt.category)]
+        .map(category => category.trim())
+        .filter(Boolean);
+      const uniqueCategories = [...new Set(categories)].sort((a, b) => a.localeCompare(b, "es"));
+      state.categories = uniqueCategories;
+      els.debtCategory.innerHTML = uniqueCategories
+        .map(category => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`)
+        .join("");
+      if (uniqueCategories.includes(selectedCategory)) {
+        els.debtCategory.value = selectedCategory;
+      }
+    }
+
+    function saveNewCategory() {
+      const cleanedCategory = els.newCategoryName.value.trim();
+      if (!cleanedCategory) return;
+      addCategory(cleanedCategory);
+      saveState();
+      renderCategoryOptions();
+      els.debtCategory.value = cleanedCategory;
+      els.newCategoryName.value = "";
+      els.categoryAdder.classList.add("hidden");
+    }
+
+    function addCategory(category) {
+      const cleanedCategory = category.trim();
+      if (!cleanedCategory) return;
+      if (!state.categories.some(savedCategory => savedCategory.toLowerCase() === cleanedCategory.toLowerCase())) {
+        state.categories.push(cleanedCategory);
+      }
+    }
+
+    function renderMonthlyRows() {
+      const rows = paymentsForMonth(selectedMonth);
+      els.monthlyEmpty.classList.toggle("hidden", rows.length > 0);
+      els.monthlyRows.innerHTML = rows.map(payment => `
+        <tr>
+          <td><strong>${escapeHtml(payment.name)}</strong></td>
+          <td>${escapeHtml(payment.category)}</td>
+          <td>${escapeHtml(payment.note || "-")}</td>
+          <td>${payment.type === "fixed" ? "Mensual" : `${payment.installmentNumber}/${payment.installments}`}</td>
+          <td class="money">${money(payment.amount)}</td>
+        </tr>
+      `).join("");
+    }
+
+    function renderMonthlyReport() {
+      const months = reportMonths();
+      const values = months.map(month => {
+        const payments = paymentsForMonth(month);
+        return {
+          month,
+          payments,
+          total: sum(payments.map(payment => payment.amount))
+        };
+      });
+      const periodTotal = sum(values.map(item => item.total));
+      const max = Math.max(1, ...values.map(item => item.total));
+      els.reportTotal.textContent = money(periodTotal);
+      els.monthlyReport.innerHTML = values.map(item => {
+        const details = item.payments.length
+          ? item.payments.slice(0, 4).map(payment => detailLabel(payment)).join("")
+          : `<span class="detail-pill">Sin movimientos</span>`;
+        const extra = item.payments.length > 4 ? `<span class="detail-pill">+${item.payments.length - 4} más</span>` : "";
+        return `
+          <div class="month-line">
+            <strong>${formatMonth(item.month)}</strong>
+            <div class="bar" aria-hidden="true"><div class="bar-fill" style="width:${Math.max(2, (item.total / max) * 100)}%"></div></div>
+            <span class="money">${money(item.total)}</span>
+            <div class="month-detail">${details}${extra}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function detailLabel(payment) {
+      const quota = payment.type === "fixed" ? "mensual" : `${payment.installmentNumber}/${payment.installments}`;
+      return `<span class="detail-pill">${escapeHtml(payment.name)} · ${quota} · ${money(payment.amount)}</span>`;
+    }
+
+    function renderMoney() {
+      if (!state.money.length) {
+        els.moneyList.innerHTML = `<div class="empty">Todavía no cargaste dinero.</div>`;
+        return;
+      }
+      els.moneyList.innerHTML = state.money.map(item => `
+        <article class="item">
+          <div class="item-row">
+            <div class="item-title">
+              <strong>${escapeHtml(item.name)}</strong>
+              <span>${escapeHtml(item.type)}${item.note ? ` · ${escapeHtml(item.note)}` : ""}</span>
+            </div>
+            <div class="money">${money(item.amount)}</div>
+          </div>
+          <div class="item-actions">
+            <button class="ghost" onclick="editMoney('${item.id}')">Editar</button>
+            <button class="ghost danger" onclick="deleteMoney('${item.id}')">Eliminar</button>
+          </div>
+        </article>
+      `).join("");
+    }
+
+    function renderDebts() {
+      if (!state.debts.length) {
+        els.debtList.innerHTML = `<div class="empty">Todavía no cargaste deudas o gastos.</div>`;
+        return;
+      }
+      els.debtList.innerHTML = state.debts.map(debt => {
+        const currentInstallment = getInstallmentNumberForMonth(debt, selectedMonth);
+        const left = debt.type === "fixed"
+          ? "mensual"
+          : currentInstallment
+            ? `${Math.max(0, debt.installments - currentInstallment + 1)} cuotas restantes`
+            : monthDiff(debt.startMonth, selectedMonth) < 0
+              ? `${Math.max(0, debt.installments - normalizeStartInstallment(debt) + 1)} cuotas desde ${formatMonth(debt.startMonth)}`
+              : "finalizado";
+        return `
+          <article class="item">
+            <div class="item-row">
+              <div class="item-title">
+                <strong>${escapeHtml(debt.name)}</strong>
+                <span>${escapeHtml(debt.category)}${debt.note ? ` · ${escapeHtml(debt.note)}` : ""}</span>
+              </div>
+              <div class="money">${money(debt.amount)}</div>
+            </div>
+            <div class="chips">
+              <span class="chip">${debt.type === "fixed" ? "Gasto fijo" : `${debt.installments} cuotas`}</span>
+              <span class="chip">Desde ${formatMonth(debt.startMonth)}</span>
+              ${debt.type === "fixed" ? "" : `<span class="chip">Arranca en ${normalizeStartInstallment(debt)}/${debt.installments}</span>`}
+              ${currentInstallment ? `<span class="chip">Este mes ${currentInstallment}/${debt.installments}</span>` : ""}
+              <span class="chip">${left}</span>
+            </div>
+            <div class="item-actions">
+              <button class="ghost" onclick="editDebt('${debt.id}')">Editar</button>
+              <button class="ghost danger" onclick="deleteDebt('${debt.id}')">Eliminar</button>
+            </div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function renderDebtPayments() {
+      const payments = [...state.debtPayments].sort((a, b) => b.month.localeCompare(a.month));
+      if (!payments.length) {
+        els.debtPaymentList.innerHTML = `<div class="empty">Todavía no registraste pagos de deudas o gastos comunes.</div>`;
+        return;
+      }
+      els.debtPaymentList.innerHTML = payments.map(payment => `
+        <article class="item">
+          <div class="item-row">
+            <div class="item-title">
+              <strong>${escapeHtml(debtName(payment.debtId))}</strong>
+              <span>${formatMonth(payment.month)}${payment.note ? ` · ${escapeHtml(payment.note)}` : ""}</span>
+            </div>
+            <div class="money">${money(payment.amount)}</div>
+          </div>
+          <div class="item-actions">
+            <button class="ghost danger" onclick="deleteDebtPayment('${payment.id}')">Eliminar</button>
+          </div>
+        </article>
+      `).join("");
+    }
+
+    function renderDebtPaymentSelect() {
+      if (!state.debts.length) {
+        els.debtPaymentDebt.innerHTML = `<option value="">Primero cargá una deuda/gasto</option>`;
+        els.debtPaymentDebt.disabled = true;
+        return;
+      }
+      els.debtPaymentDebt.disabled = false;
+      els.debtPaymentDebt.innerHTML = state.debts
+        .map(debt => `<option value="${debt.id}">${escapeHtml(debt.name)} · ${escapeHtml(debt.category)}</option>`)
+        .join("");
+    }
+
+    function renderCards() {
+      renderCardList();
+      renderCardPurchases();
+      renderCardPayments();
+    }
+
+    function renderCardList() {
+      if (!state.cards.length) {
+        els.cardList.innerHTML = `<div class="empty">Todavía no cargaste tarjetas.</div>`;
+        return;
+      }
+      els.cardList.innerHTML = state.cards.map(card => {
+        const purchases = state.cardPurchases.filter(purchase => purchase.cardId === card.id).length;
+        const payments = state.cardPayments.filter(payment => payment.cardId === card.id).length;
+        return `
+          <article class="item">
+            <div class="item-row">
+              <div class="item-title">
+                <strong>${escapeHtml(card.name)}</strong>
+                <span>${purchases} compras · ${payments} pagos registrados</span>
+              </div>
+            </div>
+            <div class="item-actions">
+              <button class="ghost danger" onclick="deleteCard('${card.id}')">Eliminar</button>
+            </div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function renderCardPurchases() {
+      if (!state.cardPurchases.length) {
+        els.cardPurchaseList.innerHTML = `<div class="empty">Todavía no cargaste compras con tarjeta.</div>`;
+        return;
+      }
+      els.cardPurchaseList.innerHTML = state.cardPurchases.map(purchase => {
+        const currentInstallment = getInstallmentNumberForMonth(purchase, selectedMonth);
+        return `
+          <article class="item">
+            <div class="item-row">
+              <div class="item-title">
+                <strong>${escapeHtml(purchase.name)}</strong>
+                <span>${escapeHtml(cardName(purchase.cardId))}${purchase.note ? ` · ${escapeHtml(purchase.note)}` : ""}</span>
+              </div>
+              <div class="money">${money(purchase.amount)}</div>
+            </div>
+            <div class="chips">
+              <span class="chip">Total ${money(purchase.total)}</span>
+              <span class="chip">Desde ${formatMonth(purchase.startMonth)}</span>
+              <span class="chip">Arranca en ${normalizeStartInstallment(purchase)}/${purchase.installments}</span>
+              ${currentInstallment ? `<span class="chip">Este mes ${currentInstallment}/${purchase.installments}</span>` : ""}
+            </div>
+            <div class="item-actions">
+              <button class="ghost danger" onclick="deleteCardPurchase('${purchase.id}')">Eliminar</button>
+            </div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function renderCardPayments() {
+      const payments = [...state.cardPayments].sort((a, b) => b.month.localeCompare(a.month));
+      if (!payments.length) {
+        els.cardPaymentList.innerHTML = `<div class="empty">Todavía no registraste pagos de tarjeta.</div>`;
+        return;
+      }
+      els.cardPaymentList.innerHTML = payments.map(payment => {
+        return `
+          <article class="item">
+            <div class="item-row">
+              <div class="item-title">
+                <strong>${escapeHtml(cardName(payment.cardId))}</strong>
+                <span>${formatMonth(payment.month)}${payment.note ? ` · ${escapeHtml(payment.note)}` : ""}</span>
+              </div>
+              <div class="money">${money(payment.paidAmount)}</div>
+            </div>
+            <div class="chips">
+              <span class="chip">Resumen ${money(payment.statementTotal)}</span>
+              <span class="chip">Pagado ${money(payment.paidAmount)}</span>
+              <span class="chip">Pendiente ${money(payment.pendingAmount)}</span>
+              ${payment.financedAmount > 0 ? `<span class="chip">Financiado ${money(payment.financedAmount)} en ${payment.financedInstallments} cuotas</span>` : ""}
+            </div>
+            <div class="item-actions">
+              <button class="ghost danger" onclick="deleteCardPayment('${payment.id}')">Eliminar</button>
+            </div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function renderCardSelects() {
+      const options = state.cards.map(card => `<option value="${card.id}">${escapeHtml(card.name)}</option>`).join("");
+      els.cardPurchaseCard.innerHTML = options;
+      els.cardPaymentCard.innerHTML = options;
+    }
+
+    function renderCalendar() {
+      const months = Array.from({ length: 12 }, (_, index) => addMonths(selectedMonth, index));
+      const values = months.map(month => ({ month, total: sum(paymentsForMonth(month).map(payment => payment.amount)) }));
+      const max = Math.max(1, ...values.map(item => item.total));
+      els.calendar.innerHTML = values.map(item => `
+        <div class="month-line">
+          <strong>${formatMonth(item.month)}</strong>
+          <div class="bar" aria-hidden="true"><div class="bar-fill" style="width:${Math.max(2, (item.total / max) * 100)}%"></div></div>
+          <span class="money">${money(item.total)}</span>
+        </div>
+      `).join("");
+    }
+
+    function reportMonths() {
+      const fixedLookahead = state.debts.some(debt => debt.type === "fixed") ? 11 : 0;
+      const allInstallments = [
+        ...state.debts.filter(debt => debt.type !== "fixed"),
+        ...state.cardPurchases,
+        ...state.cardPayments
+          .filter(payment => payment.financedAmount > 0 && payment.financedInstallments > 0)
+          .map(payment => ({
+            startMonth: addMonths(payment.month, 1),
+            installments: payment.financedInstallments,
+            startInstallment: 1
+          }))
+      ];
+      const maxInstallmentDiff = allInstallments.reduce((max, debt) => {
+        if (debt.type === "fixed") return max;
+        const lastMonth = addMonths(debt.startMonth, debt.installments - normalizeStartInstallment(debt));
+        return Math.max(max, monthDiff(selectedMonth, lastMonth));
+      }, 0);
+      const monthCount = Math.max(0, fixedLookahead, maxInstallmentDiff) + 1;
+      return Array.from({ length: monthCount }, (_, index) => addMonths(selectedMonth, index));
+    }
+
+    function paymentsForMonth(monthKey, extraDebt = null) {
+      const debts = extraDebt ? [...state.debts, extraDebt] : state.debts;
+      const debtPayments = debts.flatMap(debt => {
+        const diff = monthDiff(debt.startMonth, monthKey);
+        if (diff < 0) return [];
+        const installmentNumber = getInstallmentNumberForMonth(debt, monthKey);
+        if (debt.type !== "fixed" && !installmentNumber) return [];
+        return [{
+          ...debt,
+          installmentNumber
+        }];
+      });
+      const purchasePayments = state.cardPurchases.flatMap(purchase => {
+        const payment = cardPurchaseForMonth(purchase, monthKey);
+        return payment ? [payment] : [];
+      });
+      const financingPayments = state.cardPayments.flatMap(payment => {
+        const financing = cardFinancingForMonth(payment, monthKey);
+        return financing ? [financing] : [];
+      });
+      return [...debtPayments, ...purchasePayments, ...financingPayments];
+    }
+
+    function cardPurchaseForMonth(purchase, monthKey) {
+      const installmentNumber = getInstallmentNumberForMonth(purchase, monthKey);
+      if (!installmentNumber) return null;
+      return {
+        id: purchase.id,
+        name: purchase.name,
+        category: cardName(purchase.cardId),
+        amount: purchase.amount,
+        installments: purchase.installments,
+        installmentNumber,
+        startMonth: purchase.startMonth,
+        startInstallment: purchase.startInstallment,
+        type: "cardPurchase",
+        note: purchase.note || "Compra con tarjeta"
+      };
+    }
+
+    function cardFinancingForMonth(payment, monthKey) {
+      if (!payment.financedAmount || !payment.financedInstallments) return null;
+      const startMonth = addMonths(payment.month, 1);
+      const diff = monthDiff(startMonth, monthKey);
+      if (diff < 0 || diff >= payment.financedInstallments) return null;
+      return {
+        id: payment.id,
+        name: `Financiación ${cardName(payment.cardId)}`,
+        category: cardName(payment.cardId),
+        amount: payment.financedInstallmentAmount,
+        installments: payment.financedInstallments,
+        installmentNumber: diff + 1,
+        startMonth,
+        startInstallment: 1,
+        type: "cardFinancing",
+        note: `Saldo ${formatMonth(payment.month)}`
+      };
+    }
+
+    function evaluatePurchase() {
+      const total = numberValue("#planTotal");
+      const installments = Math.max(1, Math.floor(numberValue("#planInstallments")));
+      const amount = total / installments;
+      const reserve = numberValue("#planReserve");
+      const purchase = {
+        id: "plan",
+        name: value("#planName"),
+        category: "Compra simulada",
+        amount,
+        installments,
+        startInstallment: 1,
+        startMonth: value("#planStart"),
+        type: "installment",
+        note: `${installments} cuota${installments === 1 ? "" : "s"} sobre ${money(total)}`
+      };
+      const months = Array.from({ length: installments }, (_, index) => addMonths(purchase.startMonth, index));
+      const cash = totalMoney();
+      const impacts = months.map(month => {
+        const current = sum(paymentsForMonth(month).map(payment => payment.amount));
+        const withPurchase = sum(paymentsForMonth(month, purchase).map(payment => payment.amount));
+        return { month, current, withPurchase, remaining: cash - withPurchase };
+      });
+      const worst = impacts.reduce((lowest, item) => item.remaining < lowest.remaining ? item : lowest, impacts[0]);
+      const className = worst.remaining < 0 ? "bad" : worst.remaining < reserve ? "warn" : "good";
+      const title = className === "good" ? "La compra parece viable" : className === "warn" ? "La compra te deja con poco margen" : "La compra supera tu dinero cargado";
+      els.planResult.className = `result-box ${className}`;
+      els.planResult.classList.remove("hidden");
+      els.planResult.innerHTML = `
+        <strong>${title}</strong><br>
+        Cuota estimada: <strong>${money(amount)}</strong>. En el mes más exigido (${formatMonth(worst.month)}) quedarías con <strong>${money(worst.remaining)}</strong> después de pagos.
+        ${reserve > 0 ? `<br>Margen mínimo elegido: <strong>${money(reserve)}</strong>.` : ""}
+        <div class="item-actions" style="margin-top:12px;">
+          <button class="primary" onclick="addPlannedPurchase()">Agregar esta compra</button>
+        </div>
+      `;
+      window.pendingPurchase = purchase;
+    }
+
+    function addPlannedPurchase() {
+      if (!window.pendingPurchase) return;
+      state.debts.push({ ...window.pendingPurchase, id: createId(), category: "Compra planificada" });
+      window.pendingPurchase = null;
+      els.planResult.classList.add("hidden");
+      saveState();
+      render();
+      showView("debts");
+    }
+
+    function editMoney(id) {
+      const item = state.money.find(entry => entry.id === id);
+      if (!item) return;
+      moneyEditingId = id;
+      document.querySelector("#moneyName").value = item.name;
+      document.querySelector("#moneyType").value = item.type;
+      document.querySelector("#moneyAmount").value = item.amount;
+      document.querySelector("#moneyNote").value = item.note || "";
+      els.moneySubmit.textContent = "Guardar cambios";
+      els.moneyCancel.classList.remove("hidden");
+      document.querySelector("#moneyForm").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function deleteMoney(id) {
+      if (!confirm("¿Eliminar este dinero cargado?")) return;
+      state.money = state.money.filter(item => item.id !== id);
+      if (moneyEditingId === id) resetMoneyForm();
+      saveState();
+      render();
+    }
+
+    function editDebt(id) {
+      const item = state.debts.find(entry => entry.id === id);
+      if (!item) return;
+      debtEditingId = id;
+      addCategory(item.category);
+      renderCategoryOptions();
+      document.querySelector("#debtName").value = item.name;
+      document.querySelector("#debtCategory").value = item.category;
+      document.querySelector("#debtAmount").value = item.amount;
+      document.querySelector("#debtInstallments").value = item.type === "fixed" ? 1 : item.installments;
+      document.querySelector("#debtCurrentInstallment").value = normalizeStartInstallment(item);
+      document.querySelector("#debtStart").value = item.startMonth;
+      document.querySelector("#debtType").value = item.type;
+      document.querySelector("#debtNote").value = item.note || "";
+      els.debtSubmit.textContent = "Guardar cambios";
+      els.debtCancel.classList.remove("hidden");
+      updateInstallmentFields();
+      document.querySelector("#debtForm").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function deleteDebt(id) {
+      if (!confirm("¿Eliminar este pago o deuda?")) return;
+      state.debts = state.debts.filter(item => item.id !== id);
+      state.debtPayments = state.debtPayments.filter(payment => payment.debtId !== id);
+      if (debtEditingId === id) resetDebtForm();
+      saveState();
+      render();
+    }
+
+    function deleteDebtPayment(id) {
+      if (!confirm("¿Eliminar este pago registrado?")) return;
+      state.debtPayments = state.debtPayments.filter(payment => payment.id !== id);
+      saveState();
+      render();
+    }
+
+    function deleteCard(id) {
+      if (!confirm("¿Eliminar esta tarjeta y sus compras/pagos cargados?")) return;
+      state.cards = state.cards.filter(card => card.id !== id);
+      state.cardPurchases = state.cardPurchases.filter(purchase => purchase.cardId !== id);
+      state.cardPayments = state.cardPayments.filter(payment => payment.cardId !== id);
+      saveState();
+      render();
+    }
+
+    function deleteCardPurchase(id) {
+      if (!confirm("¿Eliminar esta compra con tarjeta?")) return;
+      state.cardPurchases = state.cardPurchases.filter(purchase => purchase.id !== id);
+      saveState();
+      render();
+    }
+
+    function deleteCardPayment(id) {
+      if (!confirm("¿Eliminar este pago de tarjeta?")) return;
+      state.cardPayments = state.cardPayments.filter(payment => payment.id !== id);
+      saveState();
+      render();
+    }
+
+    function cardName(cardId) {
+      return state.cards.find(card => card.id === cardId)?.name || "Tarjeta";
+    }
+
+    function cardPaymentsForMonth(monthKey) {
+      return state.cardPayments.filter(payment => payment.month === monthKey);
+    }
+
+    function debtName(debtId) {
+      return state.debts.find(debt => debt.id === debtId)?.name || "Deuda eliminada";
+    }
+
+    function debtPaymentsForMonth(monthKey) {
+      return state.debtPayments.filter(payment => payment.month === monthKey);
+    }
+
+    function resetMoneyForm() {
+      moneyEditingId = null;
+      document.querySelector("#moneyForm").reset();
+      els.moneySubmit.textContent = "Agregar dinero";
+      els.moneyCancel.classList.add("hidden");
+    }
+
+    function resetDebtForm() {
+      debtEditingId = null;
+      document.querySelector("#debtForm").reset();
+      document.querySelector("#debtStart").value = selectedMonth;
+      document.querySelector("#debtInstallments").value = 1;
+      document.querySelector("#debtCurrentInstallment").value = 1;
+      els.debtSubmit.textContent = "Agregar deuda/gasto";
+      els.debtCancel.classList.add("hidden");
+      updateInstallmentFields();
+    }
+
+    function remainingDebt(debt, monthKey) {
+      if (debt.type === "fixed") return 0;
+      const installmentNumber = getInstallmentNumberForMonth(debt, monthKey);
+      if (!installmentNumber) return 0;
+      return Math.max(0, debt.installments - installmentNumber + 1) * debt.amount;
+    }
+
+    function getInstallmentNumberForMonth(debt, monthKey) {
+      if (debt.type === "fixed") return null;
+      const diff = monthDiff(debt.startMonth, monthKey);
+      if (diff < 0) return null;
+      const installmentNumber = normalizeStartInstallment(debt) + diff;
+      return installmentNumber <= debt.installments ? installmentNumber : null;
+    }
+
+    function normalizeStartInstallment(debt) {
+      const rawStart = Number(debt.startInstallment) || 1;
+      const total = Math.max(1, Number(debt.installments) || 1);
+      return Math.min(total, Math.max(1, Math.floor(rawStart)));
+    }
+
+    function updateInstallmentFields() {
+      const isFixed = value("#debtType") === "fixed";
+      document.querySelectorAll(".installment-field").forEach(field => field.classList.toggle("hidden", isFixed));
+      document.querySelector("#debtInstallments").required = !isFixed;
+      document.querySelector("#debtCurrentInstallment").required = !isFixed;
+      syncCurrentInstallmentLimit();
+    }
+
+    function syncCurrentInstallmentLimit() {
+      const total = Math.max(1, Math.floor(numberValue("#debtInstallments")));
+      const currentInput = document.querySelector("#debtCurrentInstallment");
+      currentInput.max = total;
+      if ((Number(currentInput.value) || 1) > total) {
+        currentInput.value = total;
+      }
+    }
+
+    function metric(label, value, helper) {
+      return `<article class="metric"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(helper)}</small></article>`;
+    }
+
+    function totalMoney() {
+      return sum(state.money.map(item => item.amount));
+    }
+
+    function sum(values) {
+      return values.reduce((total, value) => total + value, 0);
+    }
+
+    function totalsBy(items, labelGetter) {
+      const groups = new Map();
+      items.forEach(item => {
+        const label = labelGetter(item) || "Sin categoría";
+        const current = groups.get(label) || { label, total: 0, count: 0 };
+        current.total += item.amount;
+        current.count += 1;
+        groups.set(label, current);
+      });
+      return [...groups.values()].sort((a, b) => b.total - a.total);
+    }
+
+    function summarizeGroups(groups, limit) {
+      if (groups.length <= limit) return groups;
+      const visible = groups.slice(0, limit);
+      const hidden = groups.slice(limit);
+      visible.push({
+        label: "Otras categorías",
+        total: sum(hidden.map(group => group.total)),
+        count: sum(hidden.map(group => group.count))
+      });
+      return visible;
+    }
+
+    function value(selector) {
+      return document.querySelector(selector).value.trim();
+    }
+
+    function numberValue(selector) {
+      return Number(document.querySelector(selector).value) || 0;
+    }
+
+    function toMonthKey(date) {
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    }
+
+    function addMonths(monthKey, amount) {
+      const [year, month] = monthKey.split("-").map(Number);
+      return toMonthKey(new Date(year, month - 1 + amount, 1));
+    }
+
+    function monthDiff(start, end) {
+      const [startYear, startMonth] = start.split("-").map(Number);
+      const [endYear, endMonth] = end.split("-").map(Number);
+      return (endYear - startYear) * 12 + (endMonth - startMonth);
+    }
+
+    function formatMonth(monthKey) {
+      const [year, month] = monthKey.split("-").map(Number);
+      return `${monthNames[month - 1]} ${year}`;
+    }
+
+    function money(amount) {
+      if (amountsHidden) return "••••";
+      return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(amount);
+    }
+
+    function renderAmountToggle() {
+      els.toggleAmounts.textContent = amountsHidden ? "◎" : "◉";
+      els.toggleAmounts.title = amountsHidden ? "Mostrar montos" : "Ocultar montos";
+      els.toggleAmounts.setAttribute("aria-label", els.toggleAmounts.title);
+    }
+
+    function escapeHtml(text) {
+      return String(text).replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+      })[char]);
+    }
+
+    function createId() {
+      if (window.crypto && typeof window.crypto.randomUUID === "function") {
+        return window.crypto.randomUUID();
+      }
+      return `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    }
+
+    updateInstallmentFields();
+    render();
+
+    if ("serviceWorker" in navigator && location.protocol !== "file:") {
+      navigator.serviceWorker.register("./sw.js").catch(() => {});
+    }
+  </script>
+</body>
+</html>
