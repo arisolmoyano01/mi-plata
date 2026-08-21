@@ -448,6 +448,22 @@
               <input id="movementDate" type="date" required>
             </label>
 
+            <label id="expenseTypeField" class="hidden" for="expenseType">Tipo de egreso
+              <input id="expenseType" list="expenseTypeSuggestions" maxlength="50" placeholder="Ej.: Internet, tarjeta de crédito, alquiler..." autocomplete="off">
+              <datalist id="expenseTypeSuggestions">
+                <option value="Internet">
+                <option value="Tarjeta de crédito">
+                <option value="Alquiler">
+                <option value="Servicios">
+                <option value="Supermercado">
+                <option value="Transporte">
+                <option value="Salud">
+                <option value="Educación">
+                <option value="Impuestos">
+                <option value="Entretenimiento">
+              </datalist>
+            </label>
+
             <label for="movementDescription">Detalle
               <input id="movementDescription" maxlength="80" placeholder="Opcional: sueldo, compra, transferencia...">
             </label>
@@ -497,6 +513,8 @@
         type: document.querySelector("#movementType"),
         amount: document.querySelector("#movementAmount"),
         date: document.querySelector("#movementDate"),
+        expenseTypeField: document.querySelector("#expenseTypeField"),
+        expenseType: document.querySelector("#expenseType"),
         description: document.querySelector("#movementDescription"),
         submitButton: document.querySelector("#submitButton"),
         cancelButton: document.querySelector("#cancelButton"),
@@ -516,8 +534,10 @@
       };
 
       elements.date.value = dateForMonth(selectedMonth);
+      syncExpenseTypeField();
 
       elements.form.addEventListener("submit", saveMovement);
+      elements.type.addEventListener("change", syncExpenseTypeField);
       elements.cancelButton.addEventListener("click", resetForm);
       elements.previousMonth.addEventListener("click", function () { changeMonth(-1); });
       elements.nextMonth.addEventListener("click", function () { changeMonth(1); });
@@ -531,9 +551,16 @@
         var amount = Number(elements.amount.value);
         var type = elements.type.value;
         var date = elements.date.value;
+        var expenseType = elements.expenseType.value.trim();
 
         if ((type !== "income" && type !== "expense") || !Number.isFinite(amount) || amount <= 0 || !validDate(date)) {
           showStatus("Revisá el tipo, el monto y la fecha.", true);
+          return;
+        }
+
+        if (type === "expense" && !expenseType) {
+          showStatus("Indicá el tipo de egreso.", true);
+          elements.expenseType.focus();
           return;
         }
 
@@ -543,6 +570,7 @@
           type: type,
           amount: amount,
           date: date,
+          expenseType: type === "expense" ? expenseType : "",
           description: elements.description.value.trim()
         };
 
@@ -582,7 +610,9 @@
         elements.type.value = movement.type;
         elements.amount.value = movement.amount;
         elements.date.value = movement.date;
+        elements.expenseType.value = movement.expenseType || "";
         elements.description.value = movement.description;
+        syncExpenseTypeField();
         elements.formTitle.textContent = "Editar movimiento";
         elements.submitButton.textContent = "Guardar cambios";
         elements.cancelButton.classList.remove("hidden");
@@ -614,6 +644,7 @@
         elements.form.reset();
         elements.type.value = "income";
         elements.date.value = dateForMonth(selectedMonth);
+        syncExpenseTypeField();
         elements.formTitle.textContent = "Nuevo movimiento";
         elements.submitButton.textContent = "Agregar movimiento";
         elements.cancelButton.classList.add("hidden");
@@ -659,14 +690,19 @@
 
       function movementHtml(movement) {
         var isIncome = movement.type === "income";
-        var title = movement.description || (isIncome ? "Ingreso" : "Egreso");
+        var title = isIncome
+          ? (movement.description || "Ingreso")
+          : (movement.expenseType || movement.description || "Egreso");
+        var detail = !isIncome && movement.description && movement.description !== title
+          ? " · " + movement.description
+          : "";
         var sign = isIncome ? "+ " : "- ";
 
         return '<article class="movement ' + (isIncome ? "income" : "expense") + '">' +
           '<div class="movement-icon" aria-hidden="true">' + (isIncome ? "↑" : "↓") + '</div>' +
           '<div class="movement-info">' +
             '<strong>' + escapeHtml(title) + '</strong>' +
-            '<span>' + formatDate(movement.date) + ' · ' + (isIncome ? "Ingreso" : "Egreso") + '</span>' +
+            '<span>' + formatDate(movement.date) + ' · ' + (isIncome ? "Ingreso" : "Egreso") + escapeHtml(detail) + '</span>' +
           '</div>' +
           '<div class="movement-side">' +
             '<span class="movement-amount">' + sign + formatMoney(movement.amount) + '</span>' +
@@ -703,8 +739,17 @@
           type: movement.type,
           amount: amount,
           date: date,
+          expenseType: movement.type === "expense"
+            ? String(movement.expenseType || "").slice(0, 50)
+            : "",
           description: String(movement.description || "").slice(0, 80)
         };
+      }
+
+      function syncExpenseTypeField() {
+        var isExpense = elements.type.value === "expense";
+        elements.expenseTypeField.classList.toggle("hidden", !isExpense);
+        elements.expenseType.required = isExpense;
       }
 
       function saveState() {
