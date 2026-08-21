@@ -247,6 +247,44 @@
       box-shadow: 0 0 0 3px rgba(18, 108, 116, 0.13);
     }
 
+    .payment-method-block {
+      display: grid;
+      gap: 8px;
+    }
+
+    .payment-method-help {
+      margin: -2px 0 0;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .create-method-button {
+      justify-self: start;
+      min-height: 36px;
+      padding: 7px 11px;
+      border-radius: 9px;
+      color: var(--brand-dark);
+      background: var(--neutral-soft);
+      font-size: 12px;
+      font-weight: 780;
+    }
+
+    .payment-method-creator {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #f7fbfb;
+    }
+
+    .payment-method-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
     .field-help {
       margin-top: -2px;
       color: var(--muted);
@@ -517,8 +555,8 @@
     </header>
 
     <nav class="module-nav" aria-label="Módulos y acciones de Mi plata">
-      <a href="./finanzas-app.html?v=5">Ingresos y egresos</a>
-      <a class="active" href="./seguimiento-compras.html?v=5" aria-current="page">Seguimiento de compras</a>
+      <a href="./finanzas-app.html?v=6">Ingresos y egresos</a>
+      <a class="active" href="./seguimiento-compras.html?v=6" aria-current="page">Seguimiento de compras</a>
       <button id="exportAllButton" class="export-data" type="button">⇩ Exportar datos</button>
     </nav>
 
@@ -555,10 +593,24 @@
               <input id="purchaseName" maxlength="70" placeholder="Ej.: Heladera, celular, pasajes..." autocomplete="off" required>
             </label>
 
-            <label for="purchaseCard">Tarjeta
-              <input id="purchaseCard" list="cardSuggestions" maxlength="50" placeholder="Ej.: Visa Banco Nación" autocomplete="off" required>
-              <datalist id="cardSuggestions"></datalist>
-            </label>
+            <div class="payment-method-block">
+              <label for="purchaseCard">Tarjeta o medio de pago
+                <select id="purchaseCard" required>
+                  <option value="">Seleccioná un medio de pago</option>
+                </select>
+              </label>
+              <p class="payment-method-help">Usá uno guardado o creá uno nuevo para esta compra.</p>
+              <button id="createPaymentMethodButton" class="create-method-button" type="button">+ Crear medio de pago</button>
+              <div id="paymentMethodCreator" class="payment-method-creator hidden">
+                <label for="newPaymentMethod">Nombre del nuevo medio
+                  <input id="newPaymentMethod" maxlength="50" placeholder="Ej.: Ualá, Visa Galicia, Mercado Pago..." autocomplete="off">
+                </label>
+                <div class="payment-method-actions">
+                  <button id="savePaymentMethodButton" class="primary" type="button">Guardar medio</button>
+                  <button id="cancelPaymentMethodButton" class="secondary" type="button">Cancelar</button>
+                </div>
+              </div>
+            </div>
 
             <div class="form-row">
               <label for="purchaseAmount">Monto total
@@ -638,7 +690,11 @@
         form: document.querySelector("#purchaseForm"),
         name: document.querySelector("#purchaseName"),
         card: document.querySelector("#purchaseCard"),
-        cardSuggestions: document.querySelector("#cardSuggestions"),
+        createPaymentMethodButton: document.querySelector("#createPaymentMethodButton"),
+        paymentMethodCreator: document.querySelector("#paymentMethodCreator"),
+        newPaymentMethod: document.querySelector("#newPaymentMethod"),
+        savePaymentMethodButton: document.querySelector("#savePaymentMethodButton"),
+        cancelPaymentMethodButton: document.querySelector("#cancelPaymentMethodButton"),
         amount: document.querySelector("#purchaseAmount"),
         date: document.querySelector("#purchaseDate"),
         totalInstallments: document.querySelector("#totalInstallments"),
@@ -665,6 +721,14 @@
 
       elements.form.addEventListener("submit", savePurchase);
       elements.cancelButton.addEventListener("click", resetForm);
+      elements.createPaymentMethodButton.addEventListener("click", openPaymentMethodCreator);
+      elements.savePaymentMethodButton.addEventListener("click", saveNewPaymentMethod);
+      elements.cancelPaymentMethodButton.addEventListener("click", closePaymentMethodCreator);
+      elements.newPaymentMethod.addEventListener("keydown", function (event) {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        saveNewPaymentMethod();
+      });
       elements.purchaseList.addEventListener("click", handleListAction);
       elements.filters.addEventListener("click", changeFilter);
       elements.totalInstallments.addEventListener("input", keepPaidInstallmentsValid);
@@ -684,7 +748,7 @@
         var paidInstallments = Number(elements.paidInstallments.value);
 
         if (!name || !card || !Number.isFinite(amount) || amount <= 0 || !validDate(date)) {
-          showStatus("Completá la compra, la tarjeta, el monto y la fecha.", true);
+          showStatus("Completá la compra, el medio de pago, el monto y la fecha.", true);
           return;
         }
 
@@ -812,6 +876,7 @@
         elements.date.value = todayValue();
         elements.paidInstallments.value = "0";
         elements.paidInstallments.max = "120";
+        closePaymentMethodCreator();
         elements.formTitle.textContent = "Nueva compra";
         elements.submitButton.textContent = "Agregar compra";
         elements.cancelButton.classList.add("hidden");
@@ -959,9 +1024,36 @@
       }
 
       function refreshPaymentMethods() {
-        elements.cardSuggestions.innerHTML = getSharedPaymentMethods().map(function (method) {
-          return '<option value="' + escapeHtml(method) + '"></option>';
+        var selectedValue = elements.card.value;
+        elements.card.innerHTML = '<option value="">Seleccioná un medio de pago</option>' + getSharedPaymentMethods().map(function (method) {
+          return '<option value="' + escapeHtml(method) + '">' + escapeHtml(method) + '</option>';
         }).join("");
+        elements.card.value = selectedValue;
+      }
+
+      function openPaymentMethodCreator() {
+        elements.paymentMethodCreator.classList.remove("hidden");
+        elements.createPaymentMethodButton.classList.add("hidden");
+        elements.newPaymentMethod.value = "";
+        elements.newPaymentMethod.focus();
+      }
+
+      function closePaymentMethodCreator() {
+        elements.paymentMethodCreator.classList.add("hidden");
+        elements.createPaymentMethodButton.classList.remove("hidden");
+        elements.newPaymentMethod.value = "";
+      }
+
+      function saveNewPaymentMethod() {
+        var method = elements.newPaymentMethod.value.trim().slice(0, 50);
+        if (!method) {
+          showStatus("Escribí el nombre del medio de pago.", true);
+          elements.newPaymentMethod.focus();
+          return;
+        }
+        elements.card.value = rememberPaymentMethod(method);
+        closePaymentMethodCreator();
+        showStatus("Medio de pago guardado y seleccionado.");
       }
 
       function getSharedPaymentMethods() {
@@ -976,11 +1068,14 @@
       }
 
       function rememberPaymentMethod(value) {
-        if (!value) return;
+        if (!value) return "";
         var savedMethods = safeRead(PAYMENT_METHODS_KEY, []);
         if (!Array.isArray(savedMethods)) savedMethods = [];
         localStorage.setItem(PAYMENT_METHODS_KEY, JSON.stringify(uniqueValues(savedMethods.concat(value))));
         refreshPaymentMethods();
+        return getSharedPaymentMethods().find(function (method) {
+          return method.toLocaleLowerCase("es") === String(value).toLocaleLowerCase("es");
+        }) || String(value);
       }
 
       function uniqueValues(values) {

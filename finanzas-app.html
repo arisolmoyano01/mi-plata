@@ -259,6 +259,44 @@
       box-shadow: 0 0 0 3px rgba(18, 108, 116, 0.13);
     }
 
+    .payment-method-block {
+      display: grid;
+      gap: 8px;
+    }
+
+    .payment-method-help {
+      margin: -2px 0 0;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .create-method-button {
+      justify-self: start;
+      min-height: 36px;
+      padding: 7px 11px;
+      border-radius: 9px;
+      color: var(--brand-dark);
+      background: var(--neutral-soft);
+      font-size: 12px;
+      font-weight: 760;
+    }
+
+    .payment-method-creator {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #f7fbfb;
+    }
+
+    .payment-method-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
     .form-actions {
       display: flex;
       gap: 9px;
@@ -443,8 +481,8 @@
     </header>
 
     <nav class="module-nav" aria-label="Módulos y acciones de Mi plata">
-      <a class="active" href="./finanzas-app.html?v=5" aria-current="page">Ingresos y egresos</a>
-      <a href="./seguimiento-compras.html?v=5">Seguimiento de compras</a>
+      <a class="active" href="./finanzas-app.html?v=6" aria-current="page">Ingresos y egresos</a>
+      <a href="./seguimiento-compras.html?v=6">Seguimiento de compras</a>
       <button id="exportAllButton" class="export-data" type="button">⇩ Exportar datos</button>
     </nav>
 
@@ -480,10 +518,24 @@
               </select>
             </label>
 
-            <label for="paymentMethod">Cuenta, billetera o tarjeta
-              <input id="paymentMethod" list="paymentMethodSuggestions" maxlength="50" placeholder="Ej.: Efectivo, Ualá, Visa..." autocomplete="off">
-              <datalist id="paymentMethodSuggestions"></datalist>
-            </label>
+            <div class="payment-method-block">
+              <label for="paymentMethod">Cuenta, billetera o tarjeta
+                <select id="paymentMethod">
+                  <option value="">Sin asociar</option>
+                </select>
+              </label>
+              <p class="payment-method-help">Elegí un medio guardado o creá uno nuevo.</p>
+              <button id="createPaymentMethodButton" class="create-method-button" type="button">+ Crear medio de pago</button>
+              <div id="paymentMethodCreator" class="payment-method-creator hidden">
+                <label for="newPaymentMethod">Nombre del nuevo medio
+                  <input id="newPaymentMethod" maxlength="50" placeholder="Ej.: Ualá, Visa Galicia, Mercado Pago..." autocomplete="off">
+                </label>
+                <div class="payment-method-actions">
+                  <button id="savePaymentMethodButton" class="primary" type="button">Guardar medio</button>
+                  <button id="cancelPaymentMethodButton" class="secondary" type="button">Cancelar</button>
+                </div>
+              </div>
+            </div>
 
             <label for="movementAmount">Monto
               <input id="movementAmount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0,00" required>
@@ -560,7 +612,11 @@
         form: document.querySelector("#movementForm"),
         type: document.querySelector("#movementType"),
         paymentMethod: document.querySelector("#paymentMethod"),
-        paymentMethodSuggestions: document.querySelector("#paymentMethodSuggestions"),
+        createPaymentMethodButton: document.querySelector("#createPaymentMethodButton"),
+        paymentMethodCreator: document.querySelector("#paymentMethodCreator"),
+        newPaymentMethod: document.querySelector("#newPaymentMethod"),
+        savePaymentMethodButton: document.querySelector("#savePaymentMethodButton"),
+        cancelPaymentMethodButton: document.querySelector("#cancelPaymentMethodButton"),
         amount: document.querySelector("#movementAmount"),
         date: document.querySelector("#movementDate"),
         expenseTypeField: document.querySelector("#expenseTypeField"),
@@ -591,6 +647,14 @@
       elements.form.addEventListener("submit", saveMovement);
       elements.type.addEventListener("change", syncExpenseTypeField);
       elements.cancelButton.addEventListener("click", resetForm);
+      elements.createPaymentMethodButton.addEventListener("click", openPaymentMethodCreator);
+      elements.savePaymentMethodButton.addEventListener("click", saveNewPaymentMethod);
+      elements.cancelPaymentMethodButton.addEventListener("click", closePaymentMethodCreator);
+      elements.newPaymentMethod.addEventListener("keydown", function (event) {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        saveNewPaymentMethod();
+      });
       elements.previousMonth.addEventListener("click", function () { changeMonth(-1); });
       elements.nextMonth.addEventListener("click", function () { changeMonth(1); });
       elements.movementList.addEventListener("click", handleListAction);
@@ -702,6 +766,7 @@
         elements.form.reset();
         elements.type.value = "income";
         elements.date.value = dateForMonth(selectedMonth);
+        closePaymentMethodCreator();
         syncExpenseTypeField();
         elements.formTitle.textContent = "Nuevo movimiento";
         elements.submitButton.textContent = "Agregar movimiento";
@@ -813,9 +878,36 @@
       }
 
       function refreshPaymentMethods() {
-        elements.paymentMethodSuggestions.innerHTML = getSharedPaymentMethods().map(function (method) {
-          return '<option value="' + escapeHtml(method) + '"></option>';
+        var selectedValue = elements.paymentMethod.value;
+        elements.paymentMethod.innerHTML = '<option value="">Sin asociar</option>' + getSharedPaymentMethods().map(function (method) {
+          return '<option value="' + escapeHtml(method) + '">' + escapeHtml(method) + '</option>';
         }).join("");
+        elements.paymentMethod.value = selectedValue;
+      }
+
+      function openPaymentMethodCreator() {
+        elements.paymentMethodCreator.classList.remove("hidden");
+        elements.createPaymentMethodButton.classList.add("hidden");
+        elements.newPaymentMethod.value = "";
+        elements.newPaymentMethod.focus();
+      }
+
+      function closePaymentMethodCreator() {
+        elements.paymentMethodCreator.classList.add("hidden");
+        elements.createPaymentMethodButton.classList.remove("hidden");
+        elements.newPaymentMethod.value = "";
+      }
+
+      function saveNewPaymentMethod() {
+        var method = elements.newPaymentMethod.value.trim().slice(0, 50);
+        if (!method) {
+          showStatus("Escribí el nombre del medio de pago.", true);
+          elements.newPaymentMethod.focus();
+          return;
+        }
+        elements.paymentMethod.value = rememberPaymentMethod(method);
+        closePaymentMethodCreator();
+        showStatus("Medio de pago guardado y seleccionado.");
       }
 
       function getSharedPaymentMethods() {
@@ -830,11 +922,14 @@
       }
 
       function rememberPaymentMethod(value) {
-        if (!value) return;
+        if (!value) return "";
         var savedMethods = safeRead(PAYMENT_METHODS_KEY, []);
         if (!Array.isArray(savedMethods)) savedMethods = [];
         localStorage.setItem(PAYMENT_METHODS_KEY, JSON.stringify(uniqueValues(savedMethods.concat(value))));
         refreshPaymentMethods();
+        return getSharedPaymentMethods().find(function (method) {
+          return method.toLocaleLowerCase("es") === String(value).toLocaleLowerCase("es");
+        }) || String(value);
       }
 
       function uniqueValues(values) {
