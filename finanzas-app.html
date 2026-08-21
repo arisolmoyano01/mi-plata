@@ -54,8 +54,35 @@
       align-items: center;
       justify-content: space-between;
       gap: 22px;
-      margin-bottom: 28px;
+      margin-bottom: 16px;
     }
+
+    .module-nav {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      overflow-x: auto;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: rgba(255, 255, 255, 0.72);
+      box-shadow: var(--shadow);
+    }
+
+    .module-nav a {
+      flex: 1 0 auto;
+      padding: 10px 14px;
+      border-radius: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 780;
+      text-align: center;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .module-nav a:hover { color: var(--brand-dark); background: var(--neutral-soft); }
+    .module-nav a.active { color: #fff; background: var(--brand); }
 
     .brand {
       display: flex;
@@ -407,6 +434,11 @@
         <button id="nextMonth" type="button" title="Mes siguiente" aria-label="Mes siguiente">›</button>
       </div>
     </header>
+
+    <nav class="module-nav" aria-label="Módulos de Mi plata">
+      <a class="active" href="./finanzas-app.html?v=4" aria-current="page">Ingresos y egresos</a>
+      <a href="./seguimiento-compras.html?v=4">Seguimiento de compras</a>
+    </nav>
 
     <section class="summary" aria-label="Resumen del mes">
       <article class="metric income">
