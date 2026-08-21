@@ -114,7 +114,8 @@
       box-shadow: var(--shadow);
     }
 
-    .module-nav a {
+    .module-nav a,
+    .module-nav button {
       flex: 1 0 auto;
       padding: 10px 14px;
       border-radius: 10px;
@@ -126,8 +127,14 @@
       white-space: nowrap;
     }
 
-    .module-nav a:hover { color: var(--brand-dark); background: var(--neutral-soft); }
+    .module-nav a:hover,
+    .module-nav button:hover { color: var(--brand-dark); background: var(--neutral-soft); }
     .module-nav a.active { color: #fff; background: var(--brand); }
+    .module-nav button.export-data {
+      flex: 0 0 auto;
+      color: var(--brand-dark);
+      background: var(--neutral-soft);
+    }
 
     .summary {
       display: grid;
@@ -509,9 +516,10 @@
       <span class="module-pill">Compras en cuotas</span>
     </header>
 
-    <nav class="module-nav" aria-label="Módulos de Mi plata">
-      <a href="./finanzas-app.html?v=4">Ingresos y egresos</a>
-      <a class="active" href="./seguimiento-compras.html?v=4" aria-current="page">Seguimiento de compras</a>
+    <nav class="module-nav" aria-label="Módulos y acciones de Mi plata">
+      <a href="./finanzas-app.html?v=5">Ingresos y egresos</a>
+      <a class="active" href="./seguimiento-compras.html?v=5" aria-current="page">Seguimiento de compras</a>
+      <button id="exportAllButton" class="export-data" type="button">⇩ Exportar datos</button>
     </nav>
 
     <section class="summary" aria-label="Resumen de compras">
@@ -549,13 +557,7 @@
 
             <label for="purchaseCard">Tarjeta
               <input id="purchaseCard" list="cardSuggestions" maxlength="50" placeholder="Ej.: Visa Banco Nación" autocomplete="off" required>
-              <datalist id="cardSuggestions">
-                <option value="Visa">
-                <option value="Mastercard">
-                <option value="American Express">
-                <option value="Naranja X">
-                <option value="Cabal">
-              </datalist>
+              <datalist id="cardSuggestions"></datalist>
             </label>
 
             <div class="form-row">
@@ -624,6 +626,9 @@
       "use strict";
 
       var STORAGE_KEY = "mi-plata-seguimiento-compras-v1";
+      var MOVEMENTS_KEY = "mi-plata-movimientos-v1";
+      var PAYMENT_METHODS_KEY = "mi-plata-medios-pago-v1";
+      var DEFAULT_PAYMENT_METHODS = ["Efectivo", "Cuenta bancaria", "Ualá", "Visa", "Mastercard", "Naranja X"];
       var state = loadState();
       var activeFilter = "active";
       var editingId = null;
@@ -633,6 +638,7 @@
         form: document.querySelector("#purchaseForm"),
         name: document.querySelector("#purchaseName"),
         card: document.querySelector("#purchaseCard"),
+        cardSuggestions: document.querySelector("#cardSuggestions"),
         amount: document.querySelector("#purchaseAmount"),
         date: document.querySelector("#purchaseDate"),
         totalInstallments: document.querySelector("#totalInstallments"),
@@ -650,16 +656,20 @@
         purchaseCount: document.querySelector("#purchaseCount"),
         listSubtitle: document.querySelector("#listSubtitle"),
         emptyState: document.querySelector("#emptyState"),
-        filters: document.querySelector(".filters")
+        filters: document.querySelector(".filters"),
+        exportAllButton: document.querySelector("#exportAllButton")
       };
 
       elements.date.value = todayValue();
+      refreshPaymentMethods();
 
       elements.form.addEventListener("submit", savePurchase);
       elements.cancelButton.addEventListener("click", resetForm);
       elements.purchaseList.addEventListener("click", handleListAction);
       elements.filters.addEventListener("click", changeFilter);
       elements.totalInstallments.addEventListener("input", keepPaidInstallmentsValid);
+      elements.exportAllButton.addEventListener("click", exportAllData);
+      window.addEventListener("storage", refreshPaymentMethods);
 
       render();
 
@@ -709,6 +719,7 @@
           state.purchases.push(purchase);
         }
 
+        rememberPaymentMethod(card);
         saveState();
         resetForm();
         showStatus(wasEditing ? "Compra actualizada." : "Compra agregada.");
@@ -945,6 +956,79 @@
 
       function saveState() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      }
+
+      function refreshPaymentMethods() {
+        elements.cardSuggestions.innerHTML = getSharedPaymentMethods().map(function (method) {
+          return '<option value="' + escapeHtml(method) + '"></option>';
+        }).join("");
+      }
+
+      function getSharedPaymentMethods() {
+        var savedMethods = safeRead(PAYMENT_METHODS_KEY, []);
+        if (!Array.isArray(savedMethods)) savedMethods = [];
+        var movementsState = safeRead(MOVEMENTS_KEY, { movements: [] });
+        var movementMethods = Array.isArray(movementsState.movements)
+          ? movementsState.movements.map(function (movement) { return String(movement.paymentMethod || ""); })
+          : [];
+        var purchaseMethods = state.purchases.map(function (purchase) { return purchase.card; });
+        return uniqueValues(DEFAULT_PAYMENT_METHODS.concat(savedMethods, movementMethods, purchaseMethods));
+      }
+
+      function rememberPaymentMethod(value) {
+        if (!value) return;
+        var savedMethods = safeRead(PAYMENT_METHODS_KEY, []);
+        if (!Array.isArray(savedMethods)) savedMethods = [];
+        localStorage.setItem(PAYMENT_METHODS_KEY, JSON.stringify(uniqueValues(savedMethods.concat(value))));
+        refreshPaymentMethods();
+      }
+
+      function uniqueValues(values) {
+        var seen = {};
+        return values.map(function (value) { return String(value || "").trim(); })
+          .filter(function (value) {
+            var key = value.toLocaleLowerCase("es");
+            if (!value || seen[key]) return false;
+            seen[key] = true;
+            return true;
+          })
+          .sort(function (a, b) { return a.localeCompare(b, "es"); });
+      }
+
+      function safeRead(key, fallback) {
+        try {
+          var value = JSON.parse(localStorage.getItem(key));
+          return value === null ? fallback : value;
+        } catch (error) {
+          return fallback;
+        }
+      }
+
+      function exportAllData() {
+        var movementsState = safeRead(MOVEMENTS_KEY, { movements: [] });
+        var purchasesState = safeRead(STORAGE_KEY, { purchases: [] });
+        var payload = {
+          app: "Mi plata al día",
+          version: 1,
+          exportedAt: new Date().toISOString(),
+          movements: Array.isArray(movementsState.movements) ? movementsState.movements : [],
+          purchases: Array.isArray(purchasesState.purchases) ? purchasesState.purchases : [],
+          paymentMethods: getSharedPaymentMethods()
+        };
+        downloadBackup(payload);
+        showStatus("Datos exportados correctamente.");
+      }
+
+      function downloadBackup(payload) {
+        var blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
+        var url = URL.createObjectURL(blob);
+        var link = document.createElement("a");
+        link.href = url;
+        link.download = "mi-plata-respaldo-" + todayValue() + ".json";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.setTimeout(function () { URL.revokeObjectURL(url); }, 0);
       }
 
       function validDate(value) {

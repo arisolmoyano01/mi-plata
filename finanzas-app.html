@@ -69,7 +69,8 @@
       box-shadow: var(--shadow);
     }
 
-    .module-nav a {
+    .module-nav a,
+    .module-nav button {
       flex: 1 0 auto;
       padding: 10px 14px;
       border-radius: 10px;
@@ -81,8 +82,14 @@
       white-space: nowrap;
     }
 
-    .module-nav a:hover { color: var(--brand-dark); background: var(--neutral-soft); }
+    .module-nav a:hover,
+    .module-nav button:hover { color: var(--brand-dark); background: var(--neutral-soft); }
     .module-nav a.active { color: #fff; background: var(--brand); }
+    .module-nav button.export-data {
+      flex: 0 0 auto;
+      color: var(--brand-dark);
+      background: var(--neutral-soft);
+    }
 
     .brand {
       display: flex;
@@ -435,9 +442,10 @@
       </div>
     </header>
 
-    <nav class="module-nav" aria-label="Módulos de Mi plata">
-      <a class="active" href="./finanzas-app.html?v=4" aria-current="page">Ingresos y egresos</a>
-      <a href="./seguimiento-compras.html?v=4">Seguimiento de compras</a>
+    <nav class="module-nav" aria-label="Módulos y acciones de Mi plata">
+      <a class="active" href="./finanzas-app.html?v=5" aria-current="page">Ingresos y egresos</a>
+      <a href="./seguimiento-compras.html?v=5">Seguimiento de compras</a>
+      <button id="exportAllButton" class="export-data" type="button">⇩ Exportar datos</button>
     </nav>
 
     <section class="summary" aria-label="Resumen del mes">
@@ -470,6 +478,11 @@
                 <option value="income">Ingreso</option>
                 <option value="expense">Egreso</option>
               </select>
+            </label>
+
+            <label for="paymentMethod">Cuenta, billetera o tarjeta
+              <input id="paymentMethod" list="paymentMethodSuggestions" maxlength="50" placeholder="Ej.: Efectivo, Ualá, Visa..." autocomplete="off">
+              <datalist id="paymentMethodSuggestions"></datalist>
             </label>
 
             <label for="movementAmount">Monto
@@ -535,6 +548,9 @@
       "use strict";
 
       var STORAGE_KEY = "mi-plata-movimientos-v1";
+      var PURCHASES_KEY = "mi-plata-seguimiento-compras-v1";
+      var PAYMENT_METHODS_KEY = "mi-plata-medios-pago-v1";
+      var DEFAULT_PAYMENT_METHODS = ["Efectivo", "Cuenta bancaria", "Ualá", "Visa", "Mastercard", "Naranja X"];
       var state = loadState();
       var selectedMonth = monthKey(new Date());
       var editingId = null;
@@ -543,6 +559,8 @@
       var elements = {
         form: document.querySelector("#movementForm"),
         type: document.querySelector("#movementType"),
+        paymentMethod: document.querySelector("#paymentMethod"),
+        paymentMethodSuggestions: document.querySelector("#paymentMethodSuggestions"),
         amount: document.querySelector("#movementAmount"),
         date: document.querySelector("#movementDate"),
         expenseTypeField: document.querySelector("#expenseTypeField"),
@@ -562,11 +580,13 @@
         movementList: document.querySelector("#movementList"),
         movementCount: document.querySelector("#movementCount"),
         listSubtitle: document.querySelector("#listSubtitle"),
-        emptyState: document.querySelector("#emptyState")
+        emptyState: document.querySelector("#emptyState"),
+        exportAllButton: document.querySelector("#exportAllButton")
       };
 
       elements.date.value = dateForMonth(selectedMonth);
       syncExpenseTypeField();
+      refreshPaymentMethods();
 
       elements.form.addEventListener("submit", saveMovement);
       elements.type.addEventListener("change", syncExpenseTypeField);
@@ -574,6 +594,8 @@
       elements.previousMonth.addEventListener("click", function () { changeMonth(-1); });
       elements.nextMonth.addEventListener("click", function () { changeMonth(1); });
       elements.movementList.addEventListener("click", handleListAction);
+      elements.exportAllButton.addEventListener("click", exportAllData);
+      window.addEventListener("storage", refreshPaymentMethods);
 
       render();
 
@@ -583,6 +605,7 @@
         var amount = Number(elements.amount.value);
         var type = elements.type.value;
         var date = elements.date.value;
+        var paymentMethod = elements.paymentMethod.value.trim();
         var expenseType = elements.expenseType.value.trim();
 
         if ((type !== "income" && type !== "expense") || !Number.isFinite(amount) || amount <= 0 || !validDate(date)) {
@@ -600,6 +623,7 @@
         var movement = {
           id: editingId || createId(),
           type: type,
+          paymentMethod: paymentMethod,
           amount: amount,
           date: date,
           expenseType: type === "expense" ? expenseType : "",
@@ -616,6 +640,7 @@
         }
 
         selectedMonth = date.slice(0, 7);
+        rememberPaymentMethod(paymentMethod);
         saveState();
         resetForm();
         showStatus(wasEditing ? "Movimiento actualizado." : "Movimiento agregado.");
@@ -640,6 +665,7 @@
 
         editingId = movement.id;
         elements.type.value = movement.type;
+        elements.paymentMethod.value = movement.paymentMethod || "";
         elements.amount.value = movement.amount;
         elements.date.value = movement.date;
         elements.expenseType.value = movement.expenseType || "";
@@ -728,13 +754,14 @@
         var detail = !isIncome && movement.description && movement.description !== title
           ? " · " + movement.description
           : "";
+        var association = movement.paymentMethod ? " · " + movement.paymentMethod : "";
         var sign = isIncome ? "+ " : "- ";
 
         return '<article class="movement ' + (isIncome ? "income" : "expense") + '">' +
           '<div class="movement-icon" aria-hidden="true">' + (isIncome ? "↑" : "↓") + '</div>' +
           '<div class="movement-info">' +
             '<strong>' + escapeHtml(title) + '</strong>' +
-            '<span>' + formatDate(movement.date) + ' · ' + (isIncome ? "Ingreso" : "Egreso") + escapeHtml(detail) + '</span>' +
+            '<span>' + formatDate(movement.date) + ' · ' + (isIncome ? "Ingreso" : "Egreso") + escapeHtml(association + detail) + '</span>' +
           '</div>' +
           '<div class="movement-side">' +
             '<span class="movement-amount">' + sign + formatMoney(movement.amount) + '</span>' +
@@ -769,6 +796,7 @@
         return {
           id: String(movement.id || createId()),
           type: movement.type,
+          paymentMethod: String(movement.paymentMethod || "").trim().slice(0, 50),
           amount: amount,
           date: date,
           expenseType: movement.type === "expense"
@@ -782,6 +810,79 @@
         var isExpense = elements.type.value === "expense";
         elements.expenseTypeField.classList.toggle("hidden", !isExpense);
         elements.expenseType.required = isExpense;
+      }
+
+      function refreshPaymentMethods() {
+        elements.paymentMethodSuggestions.innerHTML = getSharedPaymentMethods().map(function (method) {
+          return '<option value="' + escapeHtml(method) + '"></option>';
+        }).join("");
+      }
+
+      function getSharedPaymentMethods() {
+        var savedMethods = safeRead(PAYMENT_METHODS_KEY, []);
+        if (!Array.isArray(savedMethods)) savedMethods = [];
+        var purchasesState = safeRead(PURCHASES_KEY, { purchases: [] });
+        var movementMethods = state.movements.map(function (movement) { return movement.paymentMethod; });
+        var purchaseMethods = Array.isArray(purchasesState.purchases)
+          ? purchasesState.purchases.map(function (purchase) { return String(purchase.card || ""); })
+          : [];
+        return uniqueValues(DEFAULT_PAYMENT_METHODS.concat(savedMethods, movementMethods, purchaseMethods));
+      }
+
+      function rememberPaymentMethod(value) {
+        if (!value) return;
+        var savedMethods = safeRead(PAYMENT_METHODS_KEY, []);
+        if (!Array.isArray(savedMethods)) savedMethods = [];
+        localStorage.setItem(PAYMENT_METHODS_KEY, JSON.stringify(uniqueValues(savedMethods.concat(value))));
+        refreshPaymentMethods();
+      }
+
+      function uniqueValues(values) {
+        var seen = {};
+        return values.map(function (value) { return String(value || "").trim(); })
+          .filter(function (value) {
+            var key = value.toLocaleLowerCase("es");
+            if (!value || seen[key]) return false;
+            seen[key] = true;
+            return true;
+          })
+          .sort(function (a, b) { return a.localeCompare(b, "es"); });
+      }
+
+      function safeRead(key, fallback) {
+        try {
+          var value = JSON.parse(localStorage.getItem(key));
+          return value === null ? fallback : value;
+        } catch (error) {
+          return fallback;
+        }
+      }
+
+      function exportAllData() {
+        var movementsState = safeRead(STORAGE_KEY, { movements: [] });
+        var purchasesState = safeRead(PURCHASES_KEY, { purchases: [] });
+        var payload = {
+          app: "Mi plata al día",
+          version: 1,
+          exportedAt: new Date().toISOString(),
+          movements: Array.isArray(movementsState.movements) ? movementsState.movements : [],
+          purchases: Array.isArray(purchasesState.purchases) ? purchasesState.purchases : [],
+          paymentMethods: getSharedPaymentMethods()
+        };
+        downloadBackup(payload);
+        showStatus("Datos exportados correctamente.");
+      }
+
+      function downloadBackup(payload) {
+        var blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
+        var url = URL.createObjectURL(blob);
+        var link = document.createElement("a");
+        link.href = url;
+        link.download = "mi-plata-respaldo-" + todayValue() + ".json";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.setTimeout(function () { URL.revokeObjectURL(url); }, 0);
       }
 
       function saveState() {
@@ -811,6 +912,13 @@
             String(today.getDate()).padStart(2, "0");
         }
         return value + "-01";
+      }
+
+      function todayValue() {
+        var today = new Date();
+        return today.getFullYear() + "-" +
+          String(today.getMonth() + 1).padStart(2, "0") + "-" +
+          String(today.getDate()).padStart(2, "0");
       }
 
       function validDate(value) {
