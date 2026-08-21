@@ -1,7 +1,7 @@
 {
   "name": "Mi plata al día",
   "short_name": "Mi plata",
-  "description": "Control de dinero disponible, cuotas, gastos y compras planificadas.",
+  "description": "Registro simple de ingresos, egresos y saldo mensual.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
