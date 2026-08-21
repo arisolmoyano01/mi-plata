@@ -1,0 +1,971 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#126c74">
+  <title>Calculadora de compra | Mi plata al día</title>
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <style>
+    :root {
+      --bg: #f3f7f7;
+      --panel: #ffffff;
+      --ink: #17242a;
+      --muted: #66777e;
+      --line: #dbe5e6;
+      --brand: #126c74;
+      --brand-dark: #0a4d55;
+      --accent: #42cbbb;
+      --accent-soft: #e3f8f4;
+      --warning: #a45d12;
+      --warning-soft: #fff4df;
+      --danger: #b33b3b;
+      --danger-soft: #fff0f0;
+      --success: #197a4a;
+      --success-soft: #e8f7ef;
+      --neutral-soft: #eaf4f5;
+      --shadow: 0 12px 30px rgba(16, 55, 61, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top right, rgba(66, 203, 187, 0.14), transparent 28rem),
+        var(--bg);
+    }
+
+    button, input, select { font: inherit; }
+    button { border: 0; cursor: pointer; }
+
+    .app {
+      width: min(1180px, calc(100% - 36px));
+      margin: 0 auto;
+      padding: 28px 0 48px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+    }
+
+    .brand-mark {
+      width: 50px;
+      height: 50px;
+      display: grid;
+      place-items: center;
+      border-radius: 15px;
+      color: #10242d;
+      background: var(--accent);
+      box-shadow: var(--shadow);
+      font-size: 24px;
+      font-weight: 900;
+    }
+
+    h1, h2, h3, p { margin-top: 0; }
+
+    h1 {
+      margin-bottom: 3px;
+      font-size: clamp(23px, 4vw, 31px);
+      line-height: 1.08;
+    }
+
+    .brand p,
+    .section-heading p {
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .module-pill {
+      padding: 9px 12px;
+      border: 1px solid #bfe8e3;
+      border-radius: 999px;
+      color: var(--brand-dark);
+      background: var(--accent-soft);
+      font-size: 12px;
+      font-weight: 850;
+      white-space: nowrap;
+    }
+
+    .module-nav {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      overflow-x: auto;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: rgba(255, 255, 255, 0.72);
+      box-shadow: var(--shadow);
+    }
+
+    .module-nav a,
+    .module-nav button {
+      flex: 1 0 auto;
+      padding: 10px 14px;
+      border-radius: 10px;
+      color: var(--muted);
+      background: transparent;
+      font-size: 13px;
+      font-weight: 780;
+      text-align: center;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .module-nav a:hover,
+    .module-nav button:hover { color: var(--brand-dark); background: var(--neutral-soft); }
+    .module-nav a.active { color: #fff; background: var(--brand); }
+    .module-nav button.export-data { flex: 0 0 auto; color: var(--brand-dark); background: var(--neutral-soft); }
+
+    .read-only-note {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 20px;
+      padding: 13px 15px;
+      border: 1px solid #bfe8e3;
+      border-radius: 13px;
+      color: var(--brand-dark);
+      background: var(--accent-soft);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .content {
+      display: grid;
+      grid-template-columns: minmax(310px, 0.78fr) minmax(470px, 1.42fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .panel {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 20px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section-heading h2 { margin-bottom: 4px; font-size: 19px; }
+    .panel-body { padding: 20px; }
+    form { display: grid; gap: 14px; }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    label {
+      display: grid;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 680;
+    }
+
+    input, select {
+      width: 100%;
+      min-width: 0;
+      padding: 12px 13px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      outline: none;
+      color: var(--ink);
+      background: #fbfdfd;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(18, 108, 116, 0.13);
+    }
+
+    input[readonly] { color: var(--brand-dark); background: #f0f7f7; font-weight: 760; }
+
+    .field-help {
+      margin: -2px 0 0;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .form-actions { display: flex; gap: 9px; flex-wrap: wrap; padding-top: 3px; }
+
+    .primary {
+      min-height: 43px;
+      padding: 10px 15px;
+      border-radius: 11px;
+      color: #fff;
+      background: var(--brand);
+      font-weight: 780;
+    }
+
+    .primary:hover { background: var(--brand-dark); }
+
+    .status-message {
+      min-height: 20px;
+      margin: 12px 0 0;
+      color: var(--danger);
+      font-size: 13px;
+      font-weight: 720;
+    }
+
+    .source-card {
+      margin-top: 16px;
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      color: var(--muted);
+      background: #f8fbfb;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .source-card strong { color: var(--ink); }
+
+    .empty-result {
+      padding: 40px 24px;
+      border: 1px dashed var(--line);
+      border-radius: 14px;
+      color: var(--muted);
+      background: #fbfdfd;
+      text-align: center;
+      line-height: 1.55;
+    }
+
+    .decision {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: #f8fbfb;
+    }
+
+    .decision.good { border-color: #bde3cc; background: var(--success-soft); }
+    .decision.warning { border-color: #f0d29c; background: var(--warning-soft); }
+    .decision.danger { border-color: #efc1c1; background: var(--danger-soft); }
+
+    .decision-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+      font-size: 19px;
+      font-weight: 850;
+    }
+
+    .decision.good .decision-title { color: var(--success); }
+    .decision.warning .decision-title { color: var(--warning); }
+    .decision.danger .decision-title { color: var(--danger); }
+    .decision p { margin-bottom: 0; color: var(--ink); line-height: 1.55; }
+
+    .result-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .result-metric {
+      min-width: 0;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #f7fafa;
+    }
+
+    .result-metric span,
+    .result-metric strong { display: block; overflow-wrap: anywhere; }
+    .result-metric span { margin-bottom: 5px; color: var(--muted); font-size: 10px; font-weight: 760; text-transform: uppercase; }
+    .result-metric strong { font-size: 14px; }
+
+    .why-box {
+      margin-top: 14px;
+      padding: 14px;
+      border-left: 4px solid var(--brand);
+      border-radius: 0 12px 12px 0;
+      background: #f3f8f8;
+    }
+
+    .why-box h3 { margin-bottom: 6px; font-size: 14px; }
+    .why-box p { margin-bottom: 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
+
+    .projection-panel { margin-top: 20px; }
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      min-width: 880px;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    th, td {
+      padding: 11px 10px;
+      border-bottom: 1px solid var(--line);
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    th:first-child, td:first-child { text-align: left; }
+    th { color: var(--muted); background: #f7fafa; font-size: 10px; text-transform: uppercase; }
+    tbody tr.worst { background: var(--warning-soft); }
+    tbody tr.below-minimum { background: var(--danger-soft); }
+    td.available { font-weight: 850; }
+
+    .table-note {
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    .storage-note { margin: 20px 0 0; color: var(--muted); text-align: center; font-size: 12px; }
+    .hidden { display: none !important; }
+
+    @media (max-width: 900px) {
+      .content { grid-template-columns: 1fr; }
+      .result-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 620px) {
+      .app { width: min(100% - 24px, 1180px); padding-top: 18px; }
+      .topbar { align-items: stretch; flex-direction: column; gap: 12px; }
+      .module-pill { align-self: flex-start; }
+      .form-row, .result-metrics { grid-template-columns: 1fr; }
+      .panel-head { align-items: flex-start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">?</div>
+        <div>
+          <h1>Calculadora de compra</h1>
+          <p>Simulá una compra antes de comprometer tu dinero.</p>
+        </div>
+      </div>
+      <span class="module-pill">Simulador</span>
+    </header>
+
+    <nav class="module-nav" aria-label="Módulos y acciones de Mi plata">
+      <a href="./finanzas-app.html?v=8">Ingresos y egresos</a>
+      <a href="./seguimiento-compras.html?v=8">Seguimiento de compras</a>
+      <a class="active" href="./calculadora-compra.html?v=8" aria-current="page">Calculadora de compra</a>
+      <button id="exportAllButton" class="export-data" type="button">⇩ Exportar datos</button>
+    </nav>
+
+    <div class="read-only-note">
+      <strong aria-hidden="true">ⓘ</strong>
+      <span>Esta pantalla solamente simula. Calcular una compra no modifica tus ingresos, egresos, cuotas ni gastos fijos.</span>
+    </div>
+
+    <main class="content">
+      <section class="panel" aria-labelledby="formTitle">
+        <div class="panel-head">
+          <div class="section-heading">
+            <h2 id="formTitle">Compra que estás evaluando</h2>
+            <p>Completá los datos para analizar su impacto.</p>
+          </div>
+        </div>
+        <div class="panel-body">
+          <form id="calculatorForm">
+            <label for="purchaseAmount">Monto total de la compra
+              <input id="purchaseAmount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0,00" required>
+            </label>
+
+            <label for="paymentMode">Medio de pago
+              <select id="paymentMode" required>
+                <option value="cash">Efectivo</option>
+                <option value="card">Tarjeta</option>
+              </select>
+            </label>
+
+            <div id="cardFields" class="hidden">
+              <div class="form-row">
+                <label for="installmentCount">Cantidad de cuotas
+                  <input id="installmentCount" type="number" min="1" max="120" step="1" inputmode="numeric" value="1">
+                </label>
+
+                <label for="installmentValue">Valor estimado de cada cuota
+                  <input id="installmentValue" type="text" value="$ 0" readonly>
+                </label>
+              </div>
+
+              <div class="form-row" style="margin-top: 14px;">
+                <label for="firstInstallmentMonth">Primer mes de pago
+                  <input id="firstInstallmentMonth" type="month">
+                </label>
+
+                <label for="estimatedEndMonth">Finalización estimada
+                  <input id="estimatedEndMonth" type="text" value="-" readonly>
+                </label>
+              </div>
+            </div>
+
+            <label for="minimumReserve">Monto mínimo que quiero conservar
+              <input id="minimumReserve" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Ej.: 200000" required>
+            </label>
+            <p class="field-help">La recomendación verificará que el dinero disponible no baje de este valor en ningún mes analizado.</p>
+
+            <div class="form-actions">
+              <button class="primary" type="submit">Calcular si puedo comprar</button>
+            </div>
+          </form>
+          <p id="statusMessage" class="status-message" role="status" aria-live="polite"></p>
+          <div id="sourceCard" class="source-card"></div>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="resultTitle">
+        <div class="panel-head">
+          <div class="section-heading">
+            <h2 id="resultTitle">Resultado de la simulación</h2>
+            <p>La decisión se explica usando tus datos guardados.</p>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div id="emptyResult" class="empty-result">Ingresá una compra para conocer su impacto actual y futuro.</div>
+          <div id="resultContent" class="hidden">
+            <div id="decisionBox" class="decision">
+              <div id="decisionTitle" class="decision-title"></div>
+              <p id="decisionSummary"></p>
+            </div>
+
+            <div class="result-metrics">
+              <article class="result-metric"><span>Cuota estimada</span><strong id="resultInstallment">-</strong></article>
+              <article class="result-metric"><span>Cantidad de cuotas</span><strong id="resultCount">-</strong></article>
+              <article class="result-metric"><span>Finalización</span><strong id="resultEnd">-</strong></article>
+              <article class="result-metric"><span>Mes más comprometido</span><strong id="resultWorstMonth">-</strong></article>
+              <article class="result-metric"><span>Disponible en ese mes</span><strong id="resultWorstAvailable">-</strong></article>
+              <article class="result-metric"><span>Mínimo a conservar</span><strong id="resultMinimum">-</strong></article>
+            </div>
+
+            <div class="why-box">
+              <h3>¿Por qué?</h3>
+              <p id="decisionWhy"></p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <section id="projectionPanel" class="panel projection-panel hidden" aria-labelledby="projectionTitle">
+      <div class="panel-head">
+        <div class="section-heading">
+          <h2 id="projectionTitle">Proyección mes a mes</h2>
+          <p>Incluye movimientos, gastos fijos, cuotas existentes y la compra simulada.</p>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Mes</th>
+                <th>Ingresos</th>
+                <th>Egresos</th>
+                <th>Gastos fijos</th>
+                <th>Cuotas existentes</th>
+                <th>Nueva compra</th>
+                <th>Disponible</th>
+              </tr>
+            </thead>
+            <tbody id="projectionRows"></tbody>
+          </table>
+        </div>
+        <p id="projectionNote" class="table-note"></p>
+      </div>
+    </section>
+
+    <p class="storage-note">La simulación no se guarda ni modifica tus datos.</p>
+  </div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      var MOVEMENTS_KEY = "mi-plata-movimientos-v1";
+      var PURCHASES_KEY = "mi-plata-seguimiento-compras-v1";
+      var PAYMENT_METHODS_KEY = "mi-plata-medios-pago-v1";
+      var DEFAULT_PAYMENT_METHODS = ["Efectivo", "Cuenta bancaria", "Ualá", "Visa", "Mastercard", "Naranja X"];
+      var currentMonth = monthKey(new Date());
+
+      var elements = {
+        form: document.querySelector("#calculatorForm"),
+        amount: document.querySelector("#purchaseAmount"),
+        paymentMode: document.querySelector("#paymentMode"),
+        cardFields: document.querySelector("#cardFields"),
+        installmentCount: document.querySelector("#installmentCount"),
+        installmentValue: document.querySelector("#installmentValue"),
+        firstInstallmentMonth: document.querySelector("#firstInstallmentMonth"),
+        estimatedEndMonth: document.querySelector("#estimatedEndMonth"),
+        minimumReserve: document.querySelector("#minimumReserve"),
+        statusMessage: document.querySelector("#statusMessage"),
+        sourceCard: document.querySelector("#sourceCard"),
+        emptyResult: document.querySelector("#emptyResult"),
+        resultContent: document.querySelector("#resultContent"),
+        decisionBox: document.querySelector("#decisionBox"),
+        decisionTitle: document.querySelector("#decisionTitle"),
+        decisionSummary: document.querySelector("#decisionSummary"),
+        decisionWhy: document.querySelector("#decisionWhy"),
+        resultInstallment: document.querySelector("#resultInstallment"),
+        resultCount: document.querySelector("#resultCount"),
+        resultEnd: document.querySelector("#resultEnd"),
+        resultWorstMonth: document.querySelector("#resultWorstMonth"),
+        resultWorstAvailable: document.querySelector("#resultWorstAvailable"),
+        resultMinimum: document.querySelector("#resultMinimum"),
+        projectionPanel: document.querySelector("#projectionPanel"),
+        projectionRows: document.querySelector("#projectionRows"),
+        projectionNote: document.querySelector("#projectionNote"),
+        exportAllButton: document.querySelector("#exportAllButton")
+      };
+
+      elements.firstInstallmentMonth.value = addMonths(currentMonth, 1);
+      elements.paymentMode.addEventListener("change", syncPaymentMode);
+      elements.amount.addEventListener("input", updateCardCalculations);
+      elements.installmentCount.addEventListener("input", updateCardCalculations);
+      elements.firstInstallmentMonth.addEventListener("input", updateCardCalculations);
+      elements.form.addEventListener("submit", calculatePurchase);
+      elements.exportAllButton.addEventListener("click", exportAllData);
+
+      syncPaymentMode();
+      renderSourceSummary();
+
+      function syncPaymentMode() {
+        var isCard = elements.paymentMode.value === "card";
+        elements.cardFields.classList.toggle("hidden", !isCard);
+        elements.installmentCount.required = isCard;
+        elements.firstInstallmentMonth.required = isCard;
+        updateCardCalculations();
+      }
+
+      function updateCardCalculations() {
+        var amount = Number(elements.amount.value);
+        var count = Number(elements.installmentCount.value);
+        var firstMonth = elements.firstInstallmentMonth.value;
+        var valid = Number.isFinite(amount) && amount > 0 && Number.isInteger(count) && count >= 1 && count <= 120;
+        elements.installmentValue.value = valid ? formatMoney(amount / count) : formatMoney(0);
+        elements.estimatedEndMonth.value = valid && validMonth(firstMonth)
+          ? formatMonth(addMonths(firstMonth, count - 1))
+          : "-";
+      }
+
+      function calculatePurchase(event) {
+        event.preventDefault();
+        elements.statusMessage.textContent = "";
+
+        var amount = Number(elements.amount.value);
+        var minimum = Number(elements.minimumReserve.value);
+        var mode = elements.paymentMode.value;
+        var isCard = mode === "card";
+        var count = isCard ? Number(elements.installmentCount.value) : 1;
+        var firstMonth = isCard ? elements.firstInstallmentMonth.value : currentMonth;
+
+        if (!Number.isFinite(amount) || amount <= 0 || !Number.isFinite(minimum) || minimum < 0) {
+          showError("Revisá el monto de la compra y el mínimo que querés conservar.");
+          return;
+        }
+        if (mode !== "cash" && mode !== "card") {
+          showError("Elegí un medio de pago válido.");
+          return;
+        }
+        if (!Number.isInteger(count) || count < 1 || count > 120 || !validMonth(firstMonth)) {
+          showError("Revisá la cantidad de cuotas y el primer mes de pago.");
+          return;
+        }
+        if (firstMonth < currentMonth) {
+          showError("El primer mes de pago no puede ser anterior al mes actual.");
+          return;
+        }
+
+        var movements = loadMovements();
+        var purchases = loadPurchases();
+        var movementData = buildMovementData(movements);
+        var monthlyNewImpact = isCard ? amount / count : amount;
+        var months = [];
+        for (var index = 0; index < count; index += 1) months.push(addMonths(firstMonth, index));
+
+        var rows = months.map(function (month) {
+          var totals = totalsForMonth(month, movementData);
+          var fixed = fixedExpensesForMonth(month, purchases);
+          var existingInstallments = existingInstallmentsForMonth(month, purchases);
+          var available = totals.income - totals.expense - fixed - existingInstallments - monthlyNewImpact;
+          return {
+            month: month,
+            income: totals.income,
+            expense: totals.expense,
+            fixed: fixed,
+            existingInstallments: existingInstallments,
+            newImpact: monthlyNewImpact,
+            available: available,
+            belowMinimum: available < minimum
+          };
+        });
+
+        var worst = rows.reduce(function (lowest, row) {
+          return !lowest || row.available < lowest.available ? row : lowest;
+        }, null);
+        var hasIncome = rows.some(function (row) { return row.income > 0; });
+        var decision = buildDecision(worst, minimum, monthlyNewImpact, hasIncome);
+        renderResult(decision, rows, worst, minimum, amount, count, firstMonth, isCard, movementData, purchases);
+      }
+
+      function buildDecision(worst, minimum, newImpact, hasIncome) {
+        if (!hasIncome) {
+          return {
+            level: "danger",
+            icon: "❌",
+            title: "No es recomendable realizar esta compra ahora",
+            summary: "No hay ingresos registrados para sostener la compra en los meses analizados.",
+            why: "Registrá tus ingresos en Ingresos y egresos para que la calculadora pueda evaluar tu capacidad real de pago."
+          };
+        }
+
+        var margin = worst.available - minimum;
+        if (margin < 0) {
+          return {
+            level: "danger",
+            icon: "❌",
+            title: "No es recomendable realizar esta compra ahora",
+            summary: "En " + formatMonth(worst.month) + " quedarías por debajo del monto mínimo que querés conservar.",
+            why: formatMonth(worst.month) + " sería tu mes más ajustado: te quedarían " + formatMoney(worst.available) + ", es decir " + formatMoney(Math.abs(margin)) + " menos que tu mínimo de " + formatMoney(minimum) + "."
+          };
+        }
+
+        var cautionThreshold = Math.max(worst.income * 0.10, minimum * 0.20, newImpact * 0.50);
+        if (margin <= cautionThreshold) {
+          return {
+            level: "warning",
+            icon: "⚠️",
+            title: "Podés realizarla, pero tu margen de dinero quedará reducido",
+            summary: "La compra respeta tu mínimo, aunque el margen sería ajustado.",
+            why: formatMonth(worst.month) + " sería tu mes más comprometido y te quedarían " + formatMoney(worst.available) + ", solamente " + formatMoney(margin) + " por encima del mínimo elegido."
+          };
+        }
+
+        return {
+          level: "good",
+          icon: "✅",
+          title: "Podés realizar esta compra",
+          summary: "La proyección se mantiene por encima del monto mínimo en todos los meses analizados.",
+          why: formatMonth(worst.month) + " sería tu mes más comprometido y aun así te quedarían " + formatMoney(worst.available) + ", con un margen de " + formatMoney(margin) + " sobre el mínimo elegido."
+        };
+      }
+
+      function renderResult(decision, rows, worst, minimum, amount, count, firstMonth, isCard, movementData, purchases) {
+        elements.emptyResult.classList.add("hidden");
+        elements.resultContent.classList.remove("hidden");
+        elements.projectionPanel.classList.remove("hidden");
+        elements.decisionBox.className = "decision " + decision.level;
+        elements.decisionTitle.textContent = decision.icon + " " + decision.title;
+        elements.decisionSummary.textContent = decision.summary;
+        elements.decisionWhy.textContent = decision.why;
+        elements.resultInstallment.textContent = isCard ? formatMoney(amount / count) : "Pago único de " + formatMoney(amount);
+        elements.resultCount.textContent = isCard ? String(count) : "Pago único";
+        elements.resultEnd.textContent = formatMonth(addMonths(firstMonth, count - 1));
+        elements.resultWorstMonth.textContent = formatMonth(worst.month);
+        elements.resultWorstAvailable.textContent = formatMoney(worst.available);
+        elements.resultMinimum.textContent = formatMoney(minimum);
+
+        elements.projectionRows.innerHTML = rows.map(function (row) {
+          var className = row.belowMinimum ? "below-minimum" : row === worst ? "worst" : "";
+          return '<tr class="' + className + '">' +
+            '<td>' + escapeHtml(formatMonth(row.month)) + '</td>' +
+            '<td>' + formatMoney(row.income) + '</td>' +
+            '<td>' + formatMoney(row.expense) + '</td>' +
+            '<td>' + formatMoney(row.fixed) + '</td>' +
+            '<td>' + formatMoney(row.existingInstallments) + '</td>' +
+            '<td>' + formatMoney(row.newImpact) + '</td>' +
+            '<td class="available">' + formatMoney(row.available) + '</td>' +
+          '</tr>';
+        }).join("");
+
+        var pendingCount = purchases.filter(function (purchase) {
+          return purchase.kind !== "fixed" && purchase.paidInstallments < purchase.totalInstallments;
+        }).length;
+        var pendingLabel = pendingCount === 1 ? "1 compra con cuotas pendientes" : pendingCount + " compras con cuotas pendientes";
+        elements.projectionNote.textContent = referenceExplanation(movementData) + " Se incluyeron " + pendingLabel + " y los gastos fijos activos vigentes en cada mes.";
+      }
+
+      function buildMovementData(movements) {
+        var monthly = {};
+        movements.forEach(function (movement) {
+          var key = movement.date.slice(0, 7);
+          if (!monthly[key]) monthly[key] = { income: 0, expense: 0, hasIncome: false, hasExpense: false };
+          if (movement.type === "income") {
+            monthly[key].income += movement.amount;
+            monthly[key].hasIncome = true;
+          } else {
+            monthly[key].expense += movement.amount;
+            monthly[key].hasExpense = true;
+          }
+        });
+
+        var keys = Object.keys(monthly).sort();
+        var incomeReferenceMonth = "";
+        var expenseReferenceMonth = "";
+        keys.forEach(function (key) {
+          if (key > currentMonth) return;
+          if (monthly[key].hasIncome) incomeReferenceMonth = key;
+          if (monthly[key].hasExpense) expenseReferenceMonth = key;
+        });
+        if (!incomeReferenceMonth) {
+          keys.forEach(function (key) { if (monthly[key].hasIncome && !incomeReferenceMonth) incomeReferenceMonth = key; });
+        }
+        if (!expenseReferenceMonth) {
+          keys.forEach(function (key) { if (monthly[key].hasExpense && !expenseReferenceMonth) expenseReferenceMonth = key; });
+        }
+
+        return {
+          monthly: monthly,
+          incomeReferenceMonth: incomeReferenceMonth,
+          expenseReferenceMonth: expenseReferenceMonth,
+          referenceIncome: incomeReferenceMonth ? monthly[incomeReferenceMonth].income : 0,
+          referenceExpense: expenseReferenceMonth ? monthly[expenseReferenceMonth].expense : 0
+        };
+      }
+
+      function totalsForMonth(month, data) {
+        var exact = data.monthly[month];
+        return {
+          income: exact && exact.hasIncome ? exact.income : data.referenceIncome,
+          expense: exact && exact.hasExpense ? exact.expense : data.referenceExpense
+        };
+      }
+
+      function existingInstallmentsForMonth(month, purchases) {
+        return purchases.reduce(function (total, purchase) {
+          if (purchase.kind === "fixed" || purchase.paidInstallments >= purchase.totalInstallments) return total;
+          var remaining = purchase.totalInstallments - purchase.paidInstallments;
+          var scheduledNext = addMonths(purchase.date.slice(0, 7), purchase.paidInstallments);
+          var nextMonth = scheduledNext < currentMonth ? currentMonth : scheduledNext;
+          var offset = monthsBetween(nextMonth, month);
+          if (offset < 0 || offset >= remaining) return total;
+          return total + purchase.amount / purchase.totalInstallments;
+        }, 0);
+      }
+
+      function fixedExpensesForMonth(month, purchases) {
+        return purchases.reduce(function (total, purchase) {
+          if (purchase.kind !== "fixed" || purchase.active === false) return total;
+          return purchase.date.slice(0, 7) <= month ? total + purchase.amount : total;
+        }, 0);
+      }
+
+      function renderSourceSummary() {
+        var movements = loadMovements();
+        var purchases = loadPurchases();
+        var data = buildMovementData(movements);
+        var pending = purchases.filter(function (purchase) {
+          return purchase.kind !== "fixed" && purchase.paidInstallments < purchase.totalInstallments;
+        }).length;
+        var fixed = purchases.filter(function (purchase) {
+          return purchase.kind === "fixed" && purchase.active !== false;
+        }).length;
+        var incomeLabel = data.incomeReferenceMonth ? formatMonth(data.incomeReferenceMonth) : "sin ingresos";
+        var expenseLabel = data.expenseReferenceMonth ? formatMonth(data.expenseReferenceMonth) : "sin egresos";
+        var pendingLabel = pending === 1 ? "1 compra con cuotas pendientes" : pending + " compras con cuotas pendientes";
+        var fixedLabel = fixed === 1 ? "1 gasto fijo activo" : fixed + " gastos fijos activos";
+        elements.sourceCard.innerHTML = '<strong>Datos que se usarán</strong><br>' +
+          'Ingreso de referencia: ' + escapeHtml(incomeLabel) + ' (' + formatMoney(data.referenceIncome) + ').<br>' +
+          'Egreso de referencia: ' + escapeHtml(expenseLabel) + ' (' + formatMoney(data.referenceExpense) + ').<br>' +
+          pendingLabel + ' y ' + fixedLabel + '.';
+      }
+
+      function referenceExplanation(data) {
+        var incomeText = data.incomeReferenceMonth
+          ? "Para meses sin ingresos cargados se repite el ingreso de " + formatMonth(data.incomeReferenceMonth) + " (" + formatMoney(data.referenceIncome) + ")."
+          : "No hay un ingreso de referencia registrado.";
+        var expenseText = data.expenseReferenceMonth
+          ? " Para meses sin egresos cargados se repite el egreso de " + formatMonth(data.expenseReferenceMonth) + " (" + formatMoney(data.referenceExpense) + ")."
+          : " No hay un egreso de referencia registrado.";
+        return incomeText + expenseText;
+      }
+
+      function loadMovements() {
+        var saved = safeRead(MOVEMENTS_KEY, { movements: [] });
+        if (!saved || !Array.isArray(saved.movements)) return [];
+        return saved.movements.map(function (movement) {
+          var amount = Number(movement && movement.amount);
+          var date = String(movement && movement.date || "");
+          if (!movement || (movement.type !== "income" && movement.type !== "expense")) return null;
+          if (!Number.isFinite(amount) || amount <= 0 || !validDate(date)) return null;
+          return { type: movement.type, amount: amount, date: date };
+        }).filter(Boolean);
+      }
+
+      function loadPurchases() {
+        var saved = safeRead(PURCHASES_KEY, { purchases: [] });
+        if (!saved || !Array.isArray(saved.purchases)) return [];
+        return saved.purchases.map(function (purchase) {
+          if (!purchase) return null;
+          var kind = purchase.kind === "fixed" ? "fixed" : "installments";
+          var amount = Number(purchase.amount);
+          var date = String(purchase.date || "");
+          var totalInstallments = kind === "fixed" ? 1 : Number(purchase.totalInstallments);
+          var paidInstallments = kind === "fixed" ? 0 : Number(purchase.paidInstallments);
+          if (!Number.isFinite(amount) || amount <= 0 || !validDate(date)) return null;
+          if (!Number.isInteger(totalInstallments) || totalInstallments < 1) return null;
+          if (!Number.isInteger(paidInstallments) || paidInstallments < 0 || paidInstallments > totalInstallments) return null;
+          return {
+            kind: kind,
+            amount: amount,
+            date: date,
+            totalInstallments: totalInstallments,
+            paidInstallments: paidInstallments,
+            active: kind === "fixed" ? purchase.active !== false : true
+          };
+        }).filter(Boolean);
+      }
+
+      function exportAllData() {
+        var movementsState = safeRead(MOVEMENTS_KEY, { movements: [] });
+        var purchasesState = safeRead(PURCHASES_KEY, { purchases: [] });
+        var payload = {
+          app: "Mi plata al día",
+          version: 2,
+          exportedAt: new Date().toISOString(),
+          movements: Array.isArray(movementsState.movements) ? movementsState.movements : [],
+          purchases: Array.isArray(purchasesState.purchases) ? purchasesState.purchases : [],
+          paymentMethods: getSharedPaymentMethods(movementsState, purchasesState)
+        };
+        var blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
+        var url = URL.createObjectURL(blob);
+        var link = document.createElement("a");
+        link.href = url;
+        link.download = "mi-plata-respaldo-" + todayValue() + ".json";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.setTimeout(function () { URL.revokeObjectURL(url); }, 0);
+        elements.statusMessage.style.color = "var(--success)";
+        elements.statusMessage.textContent = "Datos exportados correctamente.";
+      }
+
+      function getSharedPaymentMethods(movementsState, purchasesState) {
+        var stored = safeRead(PAYMENT_METHODS_KEY, []);
+        if (!Array.isArray(stored)) stored = [];
+        var movementMethods = Array.isArray(movementsState.movements)
+          ? movementsState.movements.map(function (movement) { return String(movement.paymentMethod || ""); })
+          : [];
+        var purchaseMethods = Array.isArray(purchasesState.purchases)
+          ? purchasesState.purchases.map(function (purchase) { return String(purchase.card || ""); })
+          : [];
+        var seen = {};
+        return DEFAULT_PAYMENT_METHODS.concat(stored, movementMethods, purchaseMethods)
+          .map(function (value) { return String(value || "").trim(); })
+          .filter(function (value) {
+            var key = value.toLocaleLowerCase("es");
+            if (!value || seen[key]) return false;
+            seen[key] = true;
+            return true;
+          })
+          .sort(function (a, b) { return a.localeCompare(b, "es"); });
+      }
+
+      function showError(message) {
+        elements.statusMessage.style.color = "var(--danger)";
+        elements.statusMessage.textContent = message;
+      }
+
+      function safeRead(key, fallback) {
+        try {
+          var value = JSON.parse(localStorage.getItem(key));
+          return value === null ? fallback : value;
+        } catch (error) {
+          return fallback;
+        }
+      }
+
+      function monthKey(date) {
+        return date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0");
+      }
+
+      function addMonths(value, amount) {
+        var parts = value.split("-").map(Number);
+        return monthKey(new Date(parts[0], parts[1] - 1 + amount, 1));
+      }
+
+      function monthsBetween(from, to) {
+        var start = from.split("-").map(Number);
+        var end = to.split("-").map(Number);
+        return (end[0] - start[0]) * 12 + end[1] - start[1];
+      }
+
+      function validMonth(value) {
+        if (!/^\d{4}-\d{2}$/.test(value)) return false;
+        var parts = value.split("-").map(Number);
+        return parts[1] >= 1 && parts[1] <= 12;
+      }
+
+      function validDate(value) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+        var parts = value.split("-").map(Number);
+        var date = new Date(parts[0], parts[1] - 1, parts[2]);
+        return date.getFullYear() === parts[0] && date.getMonth() === parts[1] - 1 && date.getDate() === parts[2];
+      }
+
+      function formatMonth(value) {
+        var parts = value.split("-").map(Number);
+        var formatted = new Intl.DateTimeFormat("es-AR", { month: "long", year: "numeric" }).format(new Date(parts[0], parts[1] - 1, 1));
+        return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+      }
+
+      function formatMoney(value) {
+        return new Intl.NumberFormat("es-AR", {
+          style: "currency",
+          currency: "ARS",
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }).format(value);
+      }
+
+      function todayValue() {
+        var today = new Date();
+        return today.getFullYear() + "-" + String(today.getMonth() + 1).padStart(2, "0") + "-" + String(today.getDate()).padStart(2, "0");
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function () {
+          navigator.serviceWorker.register("./sw.js");
+        });
+      }
+    }());
+  </script>
+</body>
+</html>
