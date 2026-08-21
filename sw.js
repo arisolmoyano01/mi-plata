@@ -1,4 +1,4 @@
-const CACHE_NAME = "mi-plata-al-dia-v6";
+const CACHE_NAME = "mi-plata-al-dia-v7";
 const ASSETS = [
   "./index.html",
   "./finanzas-app.html",

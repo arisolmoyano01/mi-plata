@@ -138,7 +138,7 @@
 
     .summary {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: 14px;
       margin-bottom: 20px;
     }
@@ -361,6 +361,13 @@
       background: #fbfefc;
     }
 
+    .purchase.fixed {
+      border-color: #bfe8e3;
+      background: #fbfefe;
+    }
+
+    .purchase.paused { opacity: 0.78; }
+
     .purchase-top {
       display: flex;
       align-items: flex-start;
@@ -419,6 +426,16 @@
     .purchase.completed .status-pill {
       color: var(--success);
       background: var(--success-soft);
+    }
+
+    .purchase.fixed .status-pill {
+      color: var(--brand-dark);
+      background: var(--accent-soft);
+    }
+
+    .purchase.fixed.paused .status-pill {
+      color: var(--muted);
+      background: var(--neutral-soft);
     }
 
     .progress-head {
@@ -548,21 +565,21 @@
         <div class="brand-mark" aria-hidden="true">▣</div>
         <div>
           <h1>Seguimiento de compras</h1>
-          <p>Controlá tus compras en cuotas y lo que falta pagar.</p>
+          <p>Controlá tus compras en cuotas y tus gastos fijos.</p>
         </div>
       </div>
-      <span class="module-pill">Compras en cuotas</span>
+      <span class="module-pill">Cuotas y gastos fijos</span>
     </header>
 
     <nav class="module-nav" aria-label="Módulos y acciones de Mi plata">
-      <a href="./finanzas-app.html?v=6">Ingresos y egresos</a>
-      <a class="active" href="./seguimiento-compras.html?v=6" aria-current="page">Seguimiento de compras</a>
+      <a href="./finanzas-app.html?v=7">Ingresos y egresos</a>
+      <a class="active" href="./seguimiento-compras.html?v=7" aria-current="page">Seguimiento de compras</a>
       <button id="exportAllButton" class="export-data" type="button">⇩ Exportar datos</button>
     </nav>
 
     <section class="summary" aria-label="Resumen de compras">
       <article class="metric">
-        <span class="metric-label"><span class="metric-dot"></span>Compras activas</span>
+        <span class="metric-label"><span class="metric-dot"></span>Compras en cuotas activas</span>
         <strong id="activePurchases">0</strong>
       </article>
       <article class="metric warning">
@@ -577,6 +594,10 @@
         <span class="metric-label"><span class="metric-dot"></span>Restante a pagar</span>
         <strong id="remainingTotal">$ 0</strong>
       </article>
+      <article class="metric">
+        <span class="metric-label"><span class="metric-dot"></span>Gastos fijos mensuales</span>
+        <strong id="fixedMonthlyTotal">$ 0</strong>
+      </article>
     </section>
 
     <main class="content">
@@ -584,12 +605,19 @@
         <div class="panel-head">
           <div class="section-heading">
             <h2 id="formTitle">Nueva compra</h2>
-            <p>Cargá los datos de la compra financiada.</p>
+            <p id="formHelp">Cargá los datos de la compra financiada.</p>
           </div>
         </div>
         <div class="panel-body">
           <form id="purchaseForm">
-            <label for="purchaseName">Compra
+            <label for="purchaseKind">Tipo de seguimiento
+              <select id="purchaseKind" required>
+                <option value="installments">Compra en cuotas</option>
+                <option value="fixed">Gasto fijo</option>
+              </select>
+            </label>
+
+            <label for="purchaseName"><span id="nameLabel">Compra</span>
               <input id="purchaseName" maxlength="70" placeholder="Ej.: Heladera, celular, pasajes..." autocomplete="off" required>
             </label>
 
@@ -613,16 +641,16 @@
             </div>
 
             <div class="form-row">
-              <label for="purchaseAmount">Monto total
+              <label for="purchaseAmount"><span id="amountLabel">Monto total</span>
                 <input id="purchaseAmount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0,00" required>
               </label>
 
-              <label for="purchaseDate">Fecha de compra
+              <label for="purchaseDate"><span id="dateLabel">Fecha de compra</span>
                 <input id="purchaseDate" type="date" required>
               </label>
             </div>
 
-            <div class="form-row">
+            <div id="installmentFields" class="form-row">
               <label for="totalInstallments">Cuotas totales
                 <input id="totalInstallments" type="number" min="1" max="120" step="1" inputmode="numeric" placeholder="12" required>
               </label>
@@ -632,7 +660,7 @@
               </label>
             </div>
 
-            <p class="field-help">El saldo restante se calcula automáticamente según las cuotas pagadas.</p>
+            <p id="installmentHelp" class="field-help">El saldo restante se calcula automáticamente según las cuotas pagadas.</p>
 
             <label for="purchaseNotes">Detalle adicional
               <textarea id="purchaseNotes" maxlength="120" placeholder="Opcional: comercio, vencimiento u otra aclaración..."></textarea>
@@ -650,8 +678,8 @@
       <section class="panel" aria-labelledby="listTitle">
         <div class="panel-head">
           <div class="section-heading">
-            <h2 id="listTitle">Mis compras</h2>
-            <p id="listSubtitle">Compras en cuotas registradas.</p>
+            <h2 id="listTitle">Mi seguimiento</h2>
+            <p id="listSubtitle">Compras y gastos fijos registrados.</p>
           </div>
           <span id="purchaseCount" class="purchase-count">0</span>
         </div>
@@ -659,18 +687,19 @@
           <div class="filters" aria-label="Filtrar compras">
             <button class="filter-button active" type="button" data-filter="active">Activas</button>
             <button class="filter-button" type="button" data-filter="completed">Completadas</button>
+            <button class="filter-button" type="button" data-filter="fixed">Gastos fijos</button>
             <button class="filter-button" type="button" data-filter="all">Todas</button>
           </div>
           <div id="purchaseList" class="purchase-list" style="margin-top: 14px;"></div>
           <div id="emptyState" class="empty hidden">
-            Todavía no hay compras para mostrar.<br>
-            Agregá la primera compra en cuotas.
+            Todavía no hay registros para mostrar.<br>
+            Agregá una compra en cuotas o un gasto fijo.
           </div>
         </div>
       </section>
     </main>
 
-    <p class="storage-note">Las compras se guardan únicamente en este dispositivo.</p>
+    <p class="storage-note">El seguimiento se guarda únicamente en este dispositivo.</p>
   </div>
 
   <script>
@@ -688,7 +717,9 @@
 
       var elements = {
         form: document.querySelector("#purchaseForm"),
+        kind: document.querySelector("#purchaseKind"),
         name: document.querySelector("#purchaseName"),
+        nameLabel: document.querySelector("#nameLabel"),
         card: document.querySelector("#purchaseCard"),
         createPaymentMethodButton: document.querySelector("#createPaymentMethodButton"),
         paymentMethodCreator: document.querySelector("#paymentMethodCreator"),
@@ -696,18 +727,24 @@
         savePaymentMethodButton: document.querySelector("#savePaymentMethodButton"),
         cancelPaymentMethodButton: document.querySelector("#cancelPaymentMethodButton"),
         amount: document.querySelector("#purchaseAmount"),
+        amountLabel: document.querySelector("#amountLabel"),
         date: document.querySelector("#purchaseDate"),
+        dateLabel: document.querySelector("#dateLabel"),
+        installmentFields: document.querySelector("#installmentFields"),
+        installmentHelp: document.querySelector("#installmentHelp"),
         totalInstallments: document.querySelector("#totalInstallments"),
         paidInstallments: document.querySelector("#paidInstallments"),
         notes: document.querySelector("#purchaseNotes"),
         submitButton: document.querySelector("#submitButton"),
         cancelButton: document.querySelector("#cancelButton"),
         formTitle: document.querySelector("#formTitle"),
+        formHelp: document.querySelector("#formHelp"),
         statusMessage: document.querySelector("#statusMessage"),
         activePurchases: document.querySelector("#activePurchases"),
         pendingInstallments: document.querySelector("#pendingInstallments"),
         paidTotal: document.querySelector("#paidTotal"),
         remainingTotal: document.querySelector("#remainingTotal"),
+        fixedMonthlyTotal: document.querySelector("#fixedMonthlyTotal"),
         purchaseList: document.querySelector("#purchaseList"),
         purchaseCount: document.querySelector("#purchaseCount"),
         listSubtitle: document.querySelector("#listSubtitle"),
@@ -717,9 +754,11 @@
       };
 
       elements.date.value = todayValue();
+      syncPurchaseKind();
       refreshPaymentMethods();
 
       elements.form.addEventListener("submit", savePurchase);
+      elements.kind.addEventListener("change", syncPurchaseKind);
       elements.cancelButton.addEventListener("click", resetForm);
       elements.createPaymentMethodButton.addEventListener("click", openPaymentMethodCreator);
       elements.savePaymentMethodButton.addEventListener("click", saveNewPaymentMethod);
@@ -741,36 +780,43 @@
         event.preventDefault();
 
         var name = elements.name.value.trim();
+        var kind = elements.kind.value;
         var card = elements.card.value.trim();
         var amount = Number(elements.amount.value);
         var date = elements.date.value;
-        var totalInstallments = Number(elements.totalInstallments.value);
-        var paidInstallments = Number(elements.paidInstallments.value);
+        var isFixed = kind === "fixed";
+        var totalInstallments = isFixed ? 1 : Number(elements.totalInstallments.value);
+        var paidInstallments = isFixed ? 0 : Number(elements.paidInstallments.value);
 
-        if (!name || !card || !Number.isFinite(amount) || amount <= 0 || !validDate(date)) {
-          showStatus("Completá la compra, el medio de pago, el monto y la fecha.", true);
+        if ((kind !== "installments" && kind !== "fixed") || !name || !card || !Number.isFinite(amount) || amount <= 0 || !validDate(date)) {
+          showStatus("Completá el nombre, el medio de pago, el monto y la fecha.", true);
           return;
         }
 
-        if (!Number.isInteger(totalInstallments) || totalInstallments < 1 || totalInstallments > 120) {
+        if (!isFixed && (!Number.isInteger(totalInstallments) || totalInstallments < 1 || totalInstallments > 120)) {
           showStatus("Ingresá una cantidad válida de cuotas totales.", true);
           return;
         }
 
-        if (!Number.isInteger(paidInstallments) || paidInstallments < 0 || paidInstallments > totalInstallments) {
+        if (!isFixed && (!Number.isInteger(paidInstallments) || paidInstallments < 0 || paidInstallments > totalInstallments)) {
           showStatus("Las cuotas pagadas deben estar entre 0 y el total de cuotas.", true);
           return;
         }
 
         var wasEditing = Boolean(editingId);
+        var previousPurchase = editingId ? findPurchase(editingId) : null;
         var purchase = {
           id: editingId || createId(),
+          kind: kind,
           name: name,
           card: card,
           amount: amount,
           date: date,
           totalInstallments: totalInstallments,
           paidInstallments: paidInstallments,
+          active: isFixed
+            ? (!previousPurchase || previousPurchase.kind !== "fixed" ? true : previousPurchase.active !== false)
+            : true,
           notes: elements.notes.value.trim()
         };
 
@@ -786,7 +832,9 @@
         rememberPaymentMethod(card);
         saveState();
         resetForm();
-        showStatus(wasEditing ? "Compra actualizada." : "Compra agregada.");
+        showStatus(wasEditing
+          ? (isFixed ? "Gasto fijo actualizado." : "Compra actualizada.")
+          : (isFixed ? "Gasto fijo agregado." : "Compra agregada."));
         render();
       }
 
@@ -798,13 +846,14 @@
         var action = button.getAttribute("data-action");
         if (action === "pay") updatePaidInstallments(id, 1);
         if (action === "undo") updatePaidInstallments(id, -1);
+        if (action === "toggle-fixed") toggleFixedExpense(id);
         if (action === "edit") editPurchase(id);
         if (action === "delete") deletePurchase(id);
       }
 
       function updatePaidInstallments(id, change) {
         var purchase = findPurchase(id);
-        if (!purchase) return;
+        if (!purchase || purchase.kind === "fixed") return;
 
         var nextValue = purchase.paidInstallments + change;
         if (nextValue < 0 || nextValue > purchase.totalInstallments) return;
@@ -816,11 +865,22 @@
         render();
       }
 
+      function toggleFixedExpense(id) {
+        var purchase = findPurchase(id);
+        if (!purchase || purchase.kind !== "fixed") return;
+        purchase.active = purchase.active === false;
+        saveState();
+        showStatus(purchase.active ? "Gasto fijo reactivado." : "Gasto fijo pausado.");
+        render();
+      }
+
       function editPurchase(id) {
         var purchase = findPurchase(id);
         if (!purchase) return;
 
         editingId = purchase.id;
+        elements.kind.value = purchase.kind;
+        syncPurchaseKind();
         elements.name.value = purchase.name;
         elements.card.value = purchase.card;
         elements.amount.value = purchase.amount;
@@ -828,7 +888,7 @@
         elements.totalInstallments.value = purchase.totalInstallments;
         elements.paidInstallments.value = purchase.paidInstallments;
         elements.notes.value = purchase.notes;
-        elements.formTitle.textContent = "Editar compra";
+        elements.formTitle.textContent = purchase.kind === "fixed" ? "Editar gasto fijo" : "Editar compra";
         elements.submitButton.textContent = "Guardar cambios";
         elements.cancelButton.classList.remove("hidden");
         elements.name.focus();
@@ -838,7 +898,8 @@
       function deletePurchase(id) {
         var purchase = findPurchase(id);
         if (!purchase) return;
-        if (!window.confirm("¿Querés eliminar la compra “" + purchase.name + "”?")) return;
+        var itemLabel = purchase.kind === "fixed" ? "el gasto fijo" : "la compra";
+        if (!window.confirm("¿Querés eliminar " + itemLabel + " “" + purchase.name + "”?")) return;
 
         state.purchases = state.purchases.filter(function (item) {
           return item.id !== id;
@@ -846,7 +907,7 @@
 
         if (editingId === id) resetForm();
         saveState();
-        showStatus("Compra eliminada.");
+        showStatus(purchase.kind === "fixed" ? "Gasto fijo eliminado." : "Compra eliminada.");
         render();
       }
 
@@ -870,42 +931,72 @@
         }
       }
 
+      function syncPurchaseKind() {
+        var isFixed = elements.kind.value === "fixed";
+        elements.installmentFields.classList.toggle("hidden", isFixed);
+        elements.installmentHelp.classList.toggle("hidden", isFixed);
+        elements.totalInstallments.required = !isFixed;
+        elements.paidInstallments.required = !isFixed;
+        elements.nameLabel.textContent = isFixed ? "Gasto fijo" : "Compra";
+        elements.amountLabel.textContent = isFixed ? "Monto mensual" : "Monto total";
+        elements.dateLabel.textContent = isFixed ? "Fecha de inicio" : "Fecha de compra";
+        elements.name.placeholder = isFixed
+          ? "Ej.: Internet, alquiler, seguro..."
+          : "Ej.: Heladera, celular, pasajes...";
+        elements.formHelp.textContent = isFixed
+          ? "Cargá un gasto que se repite todos los meses."
+          : "Cargá los datos de la compra financiada.";
+        if (!editingId) {
+          elements.formTitle.textContent = isFixed ? "Nuevo gasto fijo" : "Nueva compra";
+          elements.submitButton.textContent = isFixed ? "Agregar gasto fijo" : "Agregar compra";
+        }
+      }
+
       function resetForm() {
         editingId = null;
         elements.form.reset();
+        elements.kind.value = "installments";
         elements.date.value = todayValue();
         elements.paidInstallments.value = "0";
         elements.paidInstallments.max = "120";
         closePaymentMethodCreator();
+        syncPurchaseKind();
         elements.formTitle.textContent = "Nueva compra";
         elements.submitButton.textContent = "Agregar compra";
         elements.cancelButton.classList.add("hidden");
       }
 
       function render() {
-        var active = state.purchases.filter(function (purchase) {
+        var installmentPurchases = state.purchases.filter(function (purchase) {
+          return purchase.kind !== "fixed";
+        });
+        var active = installmentPurchases.filter(function (purchase) {
           return purchase.paidInstallments < purchase.totalInstallments;
         });
         var pendingInstallments = active.reduce(function (total, purchase) {
           return total + purchase.totalInstallments - purchase.paidInstallments;
         }, 0);
-        var paidTotal = state.purchases.reduce(function (total, purchase) {
+        var paidTotal = installmentPurchases.reduce(function (total, purchase) {
           return total + purchase.amount * purchase.paidInstallments / purchase.totalInstallments;
         }, 0);
-        var remainingTotal = state.purchases.reduce(function (total, purchase) {
+        var remainingTotal = installmentPurchases.reduce(function (total, purchase) {
           return total + remainingAmount(purchase);
+        }, 0);
+        var fixedMonthlyTotal = state.purchases.reduce(function (total, purchase) {
+          return total + (purchase.kind === "fixed" && purchase.active !== false ? purchase.amount : 0);
         }, 0);
 
         elements.activePurchases.textContent = String(active.length);
         elements.pendingInstallments.textContent = String(pendingInstallments);
         elements.paidTotal.textContent = formatMoney(paidTotal);
         elements.remainingTotal.textContent = formatMoney(remainingTotal);
+        elements.fixedMonthlyTotal.textContent = formatMoney(fixedMonthlyTotal);
 
         var purchases = state.purchases
           .filter(matchesActiveFilter)
           .sort(function (a, b) {
-            var aCompleted = a.paidInstallments === a.totalInstallments;
-            var bCompleted = b.paidInstallments === b.totalInstallments;
+            var aCompleted = a.kind !== "fixed" && a.paidInstallments === a.totalInstallments;
+            var bCompleted = b.kind !== "fixed" && b.paidInstallments === b.totalInstallments;
             return Number(aCompleted) - Number(bCompleted) || b.date.localeCompare(a.date) || b.id.localeCompare(a.id);
           });
 
@@ -917,23 +1008,23 @@
       }
 
       function matchesActiveFilter(purchase) {
-        var completed = purchase.paidInstallments === purchase.totalInstallments;
-        if (activeFilter === "active") return !completed;
+        var isFixed = purchase.kind === "fixed";
+        var completed = !isFixed && purchase.paidInstallments === purchase.totalInstallments;
+        if (activeFilter === "active") return isFixed ? purchase.active !== false : !completed;
         if (activeFilter === "completed") return completed;
+        if (activeFilter === "fixed") return isFixed;
         return true;
       }
 
       function filterDescription(count) {
-        var singular = activeFilter === "active"
-          ? "activa"
-          : activeFilter === "completed" ? "completada" : "registrada";
-        var plural = activeFilter === "active"
-          ? "activas"
-          : activeFilter === "completed" ? "completadas" : "registradas";
-        return count === 1 ? "1 compra " + singular + "." : count + " compras " + plural + ".";
+        if (activeFilter === "fixed") return count === 1 ? "1 gasto fijo registrado." : count + " gastos fijos registrados.";
+        if (activeFilter === "completed") return count === 1 ? "1 compra completada." : count + " compras completadas.";
+        if (activeFilter === "active") return count === 1 ? "1 seguimiento activo." : count + " seguimientos activos.";
+        return count === 1 ? "1 registro." : count + " registros.";
       }
 
       function purchaseHtml(purchase) {
+        if (purchase.kind === "fixed") return fixedExpenseHtml(purchase);
         var completed = purchase.paidInstallments === purchase.totalInstallments;
         var remainingInstallments = purchase.totalInstallments - purchase.paidInstallments;
         var progress = Math.round(purchase.paidInstallments * 100 / purchase.totalInstallments);
@@ -973,6 +1064,33 @@
         '</article>';
       }
 
+      function fixedExpenseHtml(purchase) {
+        var isActive = purchase.active !== false;
+        return '<article class="purchase fixed ' + (isActive ? "" : "paused") + '">' +
+          '<div class="purchase-top">' +
+            '<div class="purchase-title">' +
+              '<div class="purchase-icon" aria-hidden="true">↻</div>' +
+              '<div>' +
+                '<h3>' + escapeHtml(purchase.name) + '</h3>' +
+                '<div class="purchase-meta">' + escapeHtml(purchase.card) + ' · Desde ' + formatDate(purchase.date) + '</div>' +
+              '</div>' +
+            '</div>' +
+            '<span class="status-pill">' + (isActive ? "Fijo activo" : "Pausado") + '</span>' +
+          '</div>' +
+          '<div class="purchase-stats">' +
+            '<div class="purchase-stat"><span>Monto mensual</span><strong>' + formatMoney(purchase.amount) + '</strong></div>' +
+            '<div class="purchase-stat"><span>Medio de pago</span><strong>' + escapeHtml(purchase.card) + '</strong></div>' +
+            '<div class="purchase-stat remaining"><span>Estado</span><strong>' + (isActive ? "Activo" : "Pausado") + '</strong></div>' +
+          '</div>' +
+          (purchase.notes ? '<p class="purchase-notes">' + escapeHtml(purchase.notes) + '</p>' : '') +
+          '<div class="purchase-actions">' +
+            '<button class="' + (isActive ? "secondary" : "primary") + '" type="button" data-action="toggle-fixed" data-id="' + escapeHtml(purchase.id) + '">' + (isActive ? "Pausar gasto" : "Reactivar gasto") + '</button>' +
+            '<button class="secondary" type="button" data-action="edit" data-id="' + escapeHtml(purchase.id) + '">Editar</button>' +
+            '<button class="danger" type="button" data-action="delete" data-id="' + escapeHtml(purchase.id) + '">Eliminar</button>' +
+          '</div>' +
+        '</article>';
+      }
+
       function remainingAmount(purchase) {
         var paid = purchase.amount * purchase.paidInstallments / purchase.totalInstallments;
         return Math.max(0, purchase.amount - paid);
@@ -997,6 +1115,7 @@
       function normalizePurchase(purchase) {
         if (!purchase) return null;
 
+        var kind = purchase.kind === "fixed" ? "fixed" : "installments";
         var amount = Number(purchase.amount);
         var totalInstallments = Number(purchase.totalInstallments);
         var paidInstallments = Number(purchase.paidInstallments);
@@ -1004,17 +1123,19 @@
 
         if (!String(purchase.name || "").trim() || !String(purchase.card || "").trim()) return null;
         if (!Number.isFinite(amount) || amount <= 0 || !validDate(date)) return null;
-        if (!Number.isInteger(totalInstallments) || totalInstallments < 1 || totalInstallments > 120) return null;
-        if (!Number.isInteger(paidInstallments) || paidInstallments < 0 || paidInstallments > totalInstallments) return null;
+        if (kind !== "fixed" && (!Number.isInteger(totalInstallments) || totalInstallments < 1 || totalInstallments > 120)) return null;
+        if (kind !== "fixed" && (!Number.isInteger(paidInstallments) || paidInstallments < 0 || paidInstallments > totalInstallments)) return null;
 
         return {
           id: String(purchase.id || createId()),
+          kind: kind,
           name: String(purchase.name).trim().slice(0, 70),
           card: String(purchase.card).trim().slice(0, 50),
           amount: amount,
           date: date,
-          totalInstallments: totalInstallments,
-          paidInstallments: paidInstallments,
+          totalInstallments: kind === "fixed" ? 1 : totalInstallments,
+          paidInstallments: kind === "fixed" ? 0 : paidInstallments,
+          active: kind === "fixed" ? purchase.active !== false : true,
           notes: String(purchase.notes || "").trim().slice(0, 120)
         };
       }
