@@ -1,9 +1,7 @@
-const CACHE_NAME = "mi-plata-al-dia-v8";
+const CACHE_NAME = "mi-plata-al-dia-v9";
 const ASSETS = [
   "./index.html",
   "./finanzas-app.html",
-  "./seguimiento-compras.html",
-  "./calculadora-compra.html",
   "./manifest.webmanifest",
   "./icon.svg"
 ];
@@ -26,7 +24,25 @@ self.addEventListener("activate", event => {
 
 self.addEventListener("fetch", event => {
   if (event.request.method !== "GET") return;
+
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy)).catch(() => {});
+          return response;
+        })
+        .catch(() =>
+          caches.match(event.request, { ignoreSearch: true })
+            .then(cached => cached || caches.match("./finanzas-app.html"))
+        )
+    );
+    return;
+  }
+
   event.respondWith(
-    caches.match(event.request).then(cached => cached || fetch(event.request))
+    caches.match(event.request, { ignoreSearch: true })
+      .then(cached => cached || fetch(event.request))
   );
 });
