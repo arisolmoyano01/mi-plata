@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-title" content="Mi Plata 2.0">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
-  <title>Mi Plata 2.1</title>
+  <title>Mi Plata 2.2</title>
   <style>
     :root{--bg:#f4f7f8;--panel:#fff;--ink:#17202a;--muted:#627282;--line:#dce5e9;--brand:#126c74;--brand2:#42cbbb;--dark:#10242d;--good:#197a4a;--warn:#b86a18;--orange:#a94d18;--bad:#b33b3b;--sg:#e8f6ef;--sw:#fff2df;--so:#ffeadf;--sb:#ffe9e9;--shadow:0 10px 24px rgba(20,32,43,.07)}
     *{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink)}
@@ -35,7 +35,7 @@
 <body>
 <div class="shell">
   <aside>
-    <div class="brand"><div class="logo">$</div><h1>Mi Plata<br>2.1</h1></div>
+    <div class="brand"><div class="logo">$</div><h1>Mi Plata<br>2.2</h1></div>
     <p class="side-note">Controlá ingresos, gastos, tarjetas, cuotas y próximos meses desde un solo lugar.</p>
     <nav>
       <button class="nav active" data-view="dashboard">⌂ Resumen</button>
@@ -148,10 +148,11 @@
             <label>Tarjeta<select id="paymentCard" required></select></label>
             <label>Mes<input id="paymentMonth" type="month" required></label>
             <label>Tipo de pago
-              <select id="paymentType">
-                <option value="full">Pago total</option>
-                <option value="minimum">Pago mínimo</option>
-                <option value="partial">Otro pago parcial</option>
+              <select id="paymentType" required>
+                <option value="" selected disabled>Elegí cómo vas a pagar</option>
+                <option value="full">Pagar TODO el resumen</option>
+                <option value="minimum">Pagar el mínimo y financiar el resto</option>
+                <option value="partial">Pagar otro importe y financiar el resto</option>
               </select>
             </label>
             <label>Monto que vas a pagar<input id="paymentAmount" type="number" min="0" step="0.01" required placeholder="0"></label>
@@ -357,7 +358,8 @@
       const due=cardDue(c.id,selectedMonth), paid=cardPaid(c.id,selectedMonth), financed=cardFinanced(c.id,selectedMonth), pending=cardPending(c.id,selectedMonth);
       const settlement=state.cardPayments.find(p=>p.cardId===c.id&&p.month===selectedMonth&&p.settlesStatement);
       const st=due===0?["good","Sin saldo"]:pending<=.01&&financed>0?["warn",settlement?.type==="minimum"?"Pago mínimo":"Saldo financiado"]:pending<=.01?["good","Pagada"]:paid>0?["warn","Pago parcial"]:["bad","Pendiente"];
-      return `<div class="cardline"><div class="cardline-top"><div><h4>${esc(c.name)}</h4><div class="sub">${esc(c.bank||"Sin entidad")} · vence ${c.dueDay?`día ${c.dueDay}`:"sin día cargado"}</div></div><div style="text-align:right"><div class="money">${money(due)}</div><span class="status ${st[0]}">${st[1]}</span></div></div><div class="chips"><span class="chip">Resumen ${money(due)}</span><span class="chip">Pagado ${money(paid)}</span>${financed>0?`<span class="chip warn">Pasa al próximo mes ${money(financed)}</span>`:""}<span class="chip ${pending>0?"bad":"good"}">Pendiente este mes ${money(pending)}</span><span class="chip">${cardPurchasesForMonth(c.id,selectedMonth).length} cuotas/compras</span></div><div class="actions">${pending>0?`<button class="primary" onclick="markCardPaid('${c.id}')">Pagar total pendiente</button>`:""}</div></div>`;
+      const monthPayments=state.cardPayments.filter(p=>p.cardId===c.id&&p.month===selectedMonth);
+      return `<div class="cardline"><div class="cardline-top"><div><h4>${esc(c.name)}</h4><div class="sub">${esc(c.bank||"Sin entidad")} · vence ${c.dueDay?`día ${c.dueDay}`:"sin día cargado"}</div></div><div style="text-align:right"><div class="money">${money(due)}</div><span class="status ${st[0]}">${st[1]}</span></div></div><div class="chips"><span class="chip">Resumen ${money(due)}</span><span class="chip">Pagado ${money(paid)}</span>${financed>0?`<span class="chip warn">Pasa al próximo mes ${money(financed)}</span>`:""}<span class="chip ${pending>0?"bad":"good"}">Pendiente este mes ${money(pending)}</span><span class="chip">${cardPurchasesForMonth(c.id,selectedMonth).length} cuotas/compras</span></div><div class="actions">${due>0&&pending>0?`<button class="primary" onclick="preparePayment('${c.id}')">Registrar pago</button>`:""}${monthPayments.length?`<button class="danger" onclick="undoLastPayment('${c.id}')">Deshacer último pago</button>`:""}</div></div>`;
     }).join("");
   }
   function renderMovements(){
@@ -397,17 +399,32 @@
   function syncPaymentForm(){
     const cardId=$("#paymentCard")?.value, month=$("#paymentMonth")?.value, type=$("#paymentType")?.value;
     if(!cardId||!month||!$("#paymentAmount")) return;
-    const due=cardDue(cardId,month), paidBefore=sum(state.cardPayments.filter(p=>p.cardId===cardId&&p.month===month&&!p.settlesStatement).map(p=>p.amount));
-    const remaining=Math.max(0,due-paidBefore);
+    const due=cardDue(cardId,month);
+    const existingSettlements=state.cardPayments.filter(p=>p.cardId===cardId&&p.month===month&&p.settlesStatement);
+    const basePaid=sum(state.cardPayments.filter(p=>p.cardId===cardId&&p.month===month&&!p.settlesStatement).map(p=>p.amount));
+    const remaining=Math.max(0,due-basePaid);
     const financeField=$("#financeChargeField");
+    const amountInput=$("#paymentAmount");
+    const preview=$("#paymentPreview");
+    if(!type){
+      if(financeField) financeField.classList.add("hidden");
+      amountInput.readOnly=false;
+      amountInput.value="";
+      if(preview) preview.innerHTML=`Resumen de ${monthLabel(month)}: <strong>${money(due)}</strong>. Elegí primero cómo vas a pagar. <strong>No se registra ningún pago hasta que toques “Registrar pago”.</strong>${existingSettlements.length?" Ya hay un pago registrado para este mes; podés deshacerlo desde Resumen.":""}`;
+      return;
+    }
     if(financeField) financeField.classList.toggle("hidden",type==="full");
-    if(type==="full") $("#paymentAmount").value=remaining?remaining.toFixed(2):"";
-    const amount=Number($("#paymentAmount").value)||0;
+    amountInput.readOnly=type==="full";
+    if(type==="full") amountInput.value=remaining?remaining.toFixed(2):"";
+    const amount=Number(amountInput.value)||0;
     const financed=type==="full"?0:Math.max(0,remaining-amount);
     const extra=Number($("#paymentFinanceCharge")?.value)||0;
-    const preview=$("#paymentPreview");
     if(preview){
-      preview.innerHTML=`Resumen del mes: <strong>${money(due)}</strong> · ya registrado antes: <strong>${money(paidBefore)}</strong> · este pago: <strong>${money(amount)}</strong>${type!=="full"?` · saldo que pasaría a ${monthLabel(addMonths(month,1))}: <strong>${money(financed)}</strong>${extra>0?` + ${money(extra)} de cargos estimados`:""}`:""}`;
+      if(type==="full"){
+        preview.innerHTML=`Vas a marcar como pagado <strong>TODO el saldo pendiente: ${money(remaining)}</strong>. Antes de guardar te voy a pedir confirmación.`;
+      }else{
+        preview.innerHTML=`Resumen: <strong>${money(due)}</strong> · este pago: <strong>${money(amount)}</strong> · saldo que pasaría a ${monthLabel(addMonths(month,1))}: <strong>${money(financed)}</strong>${extra>0?` + ${money(extra)} de cargos estimados`:""}.`;
+      }
     }
   }
   ["#paymentCard","#paymentMonth","#paymentType","#paymentAmount","#paymentFinanceCharge"].forEach(id=>{ const el=$(id); if(el) el.addEventListener("input",syncPaymentForm); if(el) el.addEventListener("change",syncPaymentForm); });
@@ -419,7 +436,11 @@
     const basePaid=sum(state.cardPayments.filter(p=>p.cardId===cardId&&p.month===month&&!p.settlesStatement).map(p=>p.amount));
     const remainingBefore=Math.max(0,due-basePaid);
     let amount=Number($("#paymentAmount").value)||0;
-    if(type==="full") amount=remainingBefore;
+    if(!type){ alert("Elegí si vas a pagar el total, el mínimo o un importe parcial."); return; }
+    if(type==="full"){
+      amount=remainingBefore;
+      if(!confirm(`Vas a marcar TODO el saldo pendiente de ${cardName(cardId)} en ${monthLabel(month)} como pagado: ${money(amount)}. ¿Confirmás que realmente ya pagaste ese importe?`)) return;
+    }
     amount=Math.max(0,Math.min(amount,remainingBefore));
     if(amount<=0&&remainingBefore>0){ alert("Ingresá el monto que vas a pagar."); return; }
     const financedAmount=type==="full"?0:Math.max(0,remainingBefore-amount);
@@ -431,17 +452,37 @@
       state.cardCharges.push({id:uid(),cardId,month:addMonths(month,1),name:`Saldo financiado de ${monthLabel(month)}`,amount:financedAmount+financeCharge,kind:"financedBalance",sourcePaymentId:paymentId});
     }
     e.target.reset();
-    $("#paymentType").value="full";
+    $("#paymentType").value="";
     $("#paymentFinanceCharge").value=0;
     save(); clearMonthDefaults(); render();
   };
 
+  function preparePayment(cardId){
+    showView("cards");
+    $("#paymentCard").value=cardId;
+    $("#paymentMonth").value=selectedMonth;
+    $("#paymentType").value="";
+    $("#paymentAmount").value="";
+    $("#paymentFinanceCharge").value=0;
+    $("#paymentDate").value=todayForMonth(selectedMonth);
+    syncPaymentForm();
+    $("#paymentForm").scrollIntoView({behavior:"smooth",block:"center"});
+  }
+  function undoLastPayment(cardId){
+    const payments=state.cardPayments.filter(p=>p.cardId===cardId&&p.month===selectedMonth);
+    if(!payments.length){ alert("No hay pagos registrados para deshacer en este mes."); return; }
+    const payment=payments[payments.length-1];
+    const typeLabel=payment.type==="full"?"pago total":payment.type==="minimum"?"pago mínimo":"pago parcial";
+    if(!confirm(`Se va a eliminar el último ${typeLabel} de ${cardName(cardId)} por ${money(payment.amount)} registrado en ${monthLabel(selectedMonth)}. ¿Deshacerlo?`)) return;
+    state.cardPayments=state.cardPayments.filter(p=>p.id!==payment.id);
+    state.cardCharges=state.cardCharges.filter(ch=>ch.sourcePaymentId!==payment.id);
+    save();
+    render();
+  }
   function markCardPaid(cardId){
-    const due=cardDue(cardId,selectedMonth), paid=cardPaid(cardId,selectedMonth), financed=cardFinanced(cardId,selectedMonth), amount=Math.max(0,due-paid-financed);
-    if(amount<=0)return;
-    const id=uid();
-    state.cardPayments.push({id,cardId,month:selectedMonth,amount,date:todayForMonth(selectedMonth),type:"full",settlesStatement:true,financedAmount:0,financeCharge:0});
-    save(); render();
+    preparePayment(cardId);
+    $("#paymentType").value="full";
+    syncPaymentForm();
   }
   function delIncome(id){state.incomes=state.incomes.filter(x=>x.id!==id);save();render()} function delExpense(id){state.expenses=state.expenses.filter(x=>x.id!==id);save();render()}
   function delCard(id){ if(!confirm("¿Eliminar esta tarjeta y todas sus compras, cargos y pagos?"))return; state.cards=state.cards.filter(x=>x.id!==id); state.cardPurchases=state.cardPurchases.filter(x=>x.cardId!==id); state.cardCharges=state.cardCharges.filter(x=>x.cardId!==id); state.cardPayments=state.cardPayments.filter(x=>x.cardId!==id); save();render(); }
@@ -449,7 +490,7 @@
 
   $("#simForm").onsubmit=e=>{e.preventDefault(); const total=Number($("#simTotal").value)||0, n=Math.max(1,Math.floor(Number($("#simInstallments").value)||1)), per=total/n, start=$("#simMonth").value, reserve=Number($("#simReserve").value)||0; const months=Array.from({length:n},(_,i)=>addMonths(start,i)); const baseIncome=incomeTotal(selectedMonth); const impacts=months.map(m=>{ const inc=incomeTotal(m)||baseIncome; const exp=expenseTotal(m), cards=cardsDueTotal(m)+per, committed=exp+cards, ratio=inc>0?committed/inc:(committed>0?1:0), free=inc-committed; return {m,inc,exp,cards,ratio,free}; }); const worst=impacts.reduce((a,b)=>(b.ratio>a.ratio||b.free<a.free)?b:a,impacts[0]); let cls="good", label="Impacto bajo"; if(worst.ratio>.85||worst.free<0){cls="bad";label="Impacto muy alto"} else if(worst.ratio>.70||worst.free<reserve){cls="orange";label="Impacto alto"} else if(worst.ratio>.50){cls="warn";label="Impacto moderado"} const card=state.cards.find(c=>c.id===$("#simCard").value); const futureUsed=card?outstandingCard(card.id,start):0; const limitOk=!card||!card.limit||(futureUsed+total<=card.limit); if(!limitOk){cls="bad";label="Supera el límite estimado de la tarjeta"} $("#simResult").className=`result ${cls}`; $("#simResult").classList.remove("hidden"); $("#simResult").innerHTML=`<strong>${label}</strong><br>Cuota estimada: <strong>${money(per)}</strong>. El mes más exigido sería <strong>${monthLabel(worst.m)}</strong>: quedarían aproximadamente <strong>${money(worst.free)}</strong> libres y tendrías comprometido el <strong>${Math.round(worst.ratio*100)}%</strong> de los ingresos considerados.${card&&card.limit?`<br>En ${esc(card.name)}, el compromiso estimado después de sumar esta compra sería ${money(futureUsed+total)} sobre un límite de ${money(card.limit)}.`:""}<br><span class="mini">La simulación usa los ingresos futuros cargados; si un mes no tiene ingresos cargados, toma como referencia los ingresos de ${monthLabel(selectedMonth)}.</span>`; };
 
-  $("#exportBtn").onclick=()=>{ const blob=new Blob([JSON.stringify({app:"Mi Plata 2.0",version:2,exportedAt:new Date().toISOString(),data:state},null,2)],{type:"application/json"}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=`mi-plata-v2-${selectedMonth}.json`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),500); };
+  $("#exportBtn").onclick=()=>{ const blob=new Blob([JSON.stringify({app:"Mi Plata 2.2",version:2,exportedAt:new Date().toISOString(),data:state},null,2)],{type:"application/json"}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=`mi-plata-v2-${selectedMonth}.json`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),500); };
   $("#importBtn").onclick=()=>$("#importFile").click(); $("#importFile").onchange=e=>{ const f=e.target.files?.[0]; if(!f)return; const r=new FileReader(); r.onload=()=>{try{const p=JSON.parse(String(r.result)); const d=p.data||p; const imported=d.version===2||d.incomes?normalizeV2(d):(d.movements||d.purchases?migrateClassicPayload(d):migrateLegacy(d)); if(!confirm("¿Importar este respaldo y reemplazar los datos actuales de Mi Plata 2.0?"))return; Object.keys(state).forEach(k=>delete state[k]); Object.assign(state,imported); save(); render();}catch(err){alert("No pude importar ese archivo.")}finally{e.target.value=""}}; r.readAsText(f); };
 
   render();
