@@ -5,1082 +5,380 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#126c74">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Mi plata al día">
+  <meta name="apple-mobile-web-app-title" content="Mi Plata 2.0">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="./icon.svg">
-  <title>Mi plata al día</title>
+  <title>Mi Plata 2.0</title>
   <style>
-    :root {
-      --bg: #f3f7f7;
-      --panel: #ffffff;
-      --ink: #17242a;
-      --muted: #66777e;
-      --line: #dbe5e6;
-      --brand: #126c74;
-      --brand-dark: #0a4d55;
-      --accent: #42cbbb;
-      --income: #197a4a;
-      --income-soft: #e8f7ef;
-      --expense: #b33b3b;
-      --expense-soft: #fff0f0;
-      --neutral-soft: #eaf4f5;
-      --shadow: 0 12px 30px rgba(16, 55, 61, 0.08);
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      min-height: 100vh;
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      color: var(--ink);
-      background:
-        radial-gradient(circle at top right, rgba(66, 203, 187, 0.14), transparent 28rem),
-        var(--bg);
-    }
-
-    button, input, select { font: inherit; }
-    button { border: 0; cursor: pointer; }
-
-    .app {
-      width: min(1120px, calc(100% - 36px));
-      margin: 0 auto;
-      padding: 30px 0 48px;
-    }
-
-    .topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 22px;
-      margin-bottom: 16px;
-    }
-
-    .module-nav {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 24px;
-      overflow-x: auto;
-      padding: 4px;
-      border: 1px solid var(--line);
-      border-radius: 13px;
-      background: rgba(255, 255, 255, 0.72);
-      box-shadow: var(--shadow);
-    }
-
-    .module-nav a,
-    .module-nav button {
-      flex: 1 0 auto;
-      padding: 10px 14px;
-      border-radius: 10px;
-      color: var(--muted);
-      font-size: 13px;
-      font-weight: 780;
-      text-align: center;
-      text-decoration: none;
-      white-space: nowrap;
-    }
-
-    .module-nav a:hover,
-    .module-nav button:hover { color: var(--brand-dark); background: var(--neutral-soft); }
-    .module-nav a.active { color: #fff; background: var(--brand); }
-    .module-nav button.export-data {
-      flex: 0 0 auto;
-      color: var(--brand-dark);
-      background: var(--neutral-soft);
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 13px;
-    }
-
-    .brand-mark {
-      width: 48px;
-      height: 48px;
-      display: grid;
-      place-items: center;
-      border-radius: 14px;
-      color: #10242d;
-      background: var(--accent);
-      box-shadow: var(--shadow);
-      font-size: 24px;
-      font-weight: 900;
-    }
-
-    h1, h2, p { margin-top: 0; }
-
-    h1 {
-      margin-bottom: 3px;
-      font-size: 23px;
-      line-height: 1.1;
-    }
-
-    .brand p,
-    .section-heading p {
-      margin-bottom: 0;
-      color: var(--muted);
-      font-size: 14px;
-    }
-
-    .month-picker {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 7px;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      background: var(--panel);
-      box-shadow: var(--shadow);
-    }
-
-    .month-picker button {
-      width: 38px;
-      height: 38px;
-      border-radius: 10px;
-      color: var(--brand-dark);
-      background: var(--neutral-soft);
-      font-size: 23px;
-      font-weight: 800;
-      line-height: 1;
-    }
-
-    .month-picker button:hover { background: #dceff0; }
-
-    .month-picker strong {
-      min-width: 154px;
-      text-align: center;
-      text-transform: capitalize;
-    }
-
-    .summary {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 16px;
-      margin-bottom: 20px;
-    }
-
-    .metric {
-      min-width: 0;
-      padding: 20px;
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      background: var(--panel);
-      box-shadow: var(--shadow);
-    }
-
-    .metric-label {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 11px;
-      color: var(--muted);
-      font-size: 13px;
-      font-weight: 700;
-    }
-
-    .metric-dot {
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      background: var(--brand);
-    }
-
-    .metric.income .metric-dot { background: var(--income); }
-    .metric.expense .metric-dot { background: var(--expense); }
-
-    .metric strong {
-      display: block;
-      overflow-wrap: anywhere;
-      font-size: clamp(24px, 4vw, 36px);
-      line-height: 1.1;
-    }
-
-    .metric.income strong { color: var(--income); }
-    .metric.expense strong,
-    .metric.negative strong { color: var(--expense); }
-
-    .content {
-      display: grid;
-      grid-template-columns: minmax(300px, 0.8fr) minmax(420px, 1.2fr);
-      gap: 20px;
-      align-items: start;
-    }
-
-    .panel {
-      overflow: hidden;
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      background: var(--panel);
-      box-shadow: var(--shadow);
-    }
-
-    .panel-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 20px;
-      border-bottom: 1px solid var(--line);
-    }
-
-    .section-heading h2 {
-      margin-bottom: 4px;
-      font-size: 19px;
-    }
-
-    .panel-body { padding: 20px; }
-    form { display: grid; gap: 15px; }
-
-    label {
-      display: grid;
-      gap: 7px;
-      color: var(--muted);
-      font-size: 13px;
-      font-weight: 650;
-    }
-
-    input, select {
-      width: 100%;
-      min-width: 0;
-      padding: 12px 13px;
-      border: 1px solid var(--line);
-      border-radius: 11px;
-      outline: none;
-      color: var(--ink);
-      background: #fbfdfd;
-    }
-
-    input:focus,
-    select:focus {
-      border-color: var(--brand);
-      box-shadow: 0 0 0 3px rgba(18, 108, 116, 0.13);
-    }
-
-    .payment-method-block {
-      display: grid;
-      gap: 8px;
-    }
-
-    .payment-method-help {
-      margin: -2px 0 0;
-      color: var(--muted);
-      font-size: 11px;
-      font-weight: 500;
-    }
-
-    .create-method-button {
-      justify-self: start;
-      min-height: 36px;
-      padding: 7px 11px;
-      border-radius: 9px;
-      color: var(--brand-dark);
-      background: var(--neutral-soft);
-      font-size: 12px;
-      font-weight: 760;
-    }
-
-    .payment-method-creator {
-      display: grid;
-      gap: 10px;
-      padding: 12px;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      background: #f7fbfb;
-    }
-
-    .payment-method-actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .form-actions {
-      display: flex;
-      gap: 9px;
-      flex-wrap: wrap;
-      padding-top: 2px;
-    }
-
-    .primary,
-    .secondary,
-    .danger {
-      min-height: 43px;
-      padding: 10px 15px;
-      border-radius: 11px;
-      font-weight: 760;
-    }
-
-    .primary { color: #fff; background: var(--brand); }
-    .primary:hover { background: var(--brand-dark); }
-    .secondary { color: var(--brand-dark); background: var(--neutral-soft); }
-    .danger { color: var(--expense); background: var(--expense-soft); }
-
-    .small-button {
-      min-height: 34px;
-      padding: 7px 10px;
-      border-radius: 9px;
-      font-size: 12px;
-    }
-
-    .hidden { display: none !important; }
-
-    .movement-count {
-      padding: 5px 9px;
-      border-radius: 999px;
-      color: var(--brand-dark);
-      background: var(--neutral-soft);
-      font-size: 12px;
-      font-weight: 800;
-    }
-
-    .movement-list { display: grid; gap: 11px; }
-
-    .movement {
-      display: grid;
-      grid-template-columns: auto minmax(0, 1fr) auto;
-      gap: 12px;
-      align-items: center;
-      padding: 14px;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      background: #fcfefe;
-    }
-
-    .movement-icon {
-      width: 42px;
-      height: 42px;
-      display: grid;
-      place-items: center;
-      border-radius: 12px;
-      color: var(--income);
-      background: var(--income-soft);
-      font-size: 20px;
-      font-weight: 900;
-    }
-
-    .movement.expense .movement-icon {
-      color: var(--expense);
-      background: var(--expense-soft);
-    }
-
-    .movement-info { min-width: 0; }
-
-    .movement-info strong,
-    .movement-info span {
-      display: block;
-      overflow-wrap: anywhere;
-    }
-
-    .movement-info strong {
-      margin-bottom: 3px;
-      font-size: 15px;
-    }
-
-    .movement-info span {
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    .movement-side {
-      min-width: 120px;
-      text-align: right;
-    }
-
-    .movement-amount {
-      display: block;
-      margin-bottom: 7px;
-      color: var(--income);
-      font-weight: 850;
-      white-space: nowrap;
-    }
-
-    .movement.expense .movement-amount { color: var(--expense); }
-
-    .movement-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 6px;
-    }
-
-    .empty {
-      padding: 34px 20px;
-      border: 1px dashed var(--line);
-      border-radius: 14px;
-      color: var(--muted);
-      background: #fbfdfd;
-      text-align: center;
-      line-height: 1.5;
-    }
-
-    .status-message {
-      min-height: 20px;
-      margin: 12px 0 0;
-      color: var(--income);
-      font-size: 13px;
-      font-weight: 700;
-    }
-
-    .storage-note {
-      margin: 20px 0 0;
-      color: var(--muted);
-      text-align: center;
-      font-size: 12px;
-    }
-
-    @media (max-width: 820px) {
-      .content { grid-template-columns: 1fr; }
-    }
-
-    @media (max-width: 650px) {
-      .app {
-        width: min(100% - 24px, 1120px);
-        padding-top: 18px;
-      }
-
-      .topbar {
-        align-items: stretch;
-        flex-direction: column;
-        margin-bottom: 20px;
-      }
-
-      .month-picker { justify-content: space-between; }
-      .summary { grid-template-columns: 1fr; gap: 10px; }
-      .metric { padding: 16px; }
-      .movement { grid-template-columns: auto minmax(0, 1fr); }
-
-      .movement-side {
-        grid-column: 1 / -1;
-        min-width: 0;
-        padding-top: 4px;
-        text-align: left;
-      }
-
-      .movement-actions { justify-content: flex-start; }
-    }
+    :root{--bg:#f4f7f8;--panel:#fff;--ink:#17202a;--muted:#627282;--line:#dce5e9;--brand:#126c74;--brand2:#42cbbb;--dark:#10242d;--good:#197a4a;--warn:#b86a18;--orange:#a94d18;--bad:#b33b3b;--sg:#e8f6ef;--sw:#fff2df;--so:#ffeadf;--sb:#ffe9e9;--shadow:0 10px 24px rgba(20,32,43,.07)}
+    *{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink)}
+    button,input,select{font:inherit}button{border:0;cursor:pointer}.hidden{display:none!important}
+    .shell{min-height:100vh;display:grid;grid-template-columns:255px 1fr}aside{background:var(--dark);color:#fff;padding:26px 20px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:24px}
+    .brand{display:flex;gap:12px;align-items:center}.logo{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:var(--brand2);color:var(--dark);font-weight:900;font-size:22px}.brand h1{font-size:21px;line-height:1.05;margin:0}.side-note{color:#b9c8d0;font-size:13px;line-height:1.45;margin:0}
+    nav{display:grid;gap:7px}.nav{padding:11px 12px;border-radius:10px;text-align:left;background:transparent;color:#eef6f8;font-weight:700}.nav:hover,.nav.active{background:rgba(255,255,255,.11)}
+    .backup{margin-top:auto;display:grid;gap:8px}.backup button{padding:10px 12px;border-radius:9px;text-align:left;background:rgba(255,255,255,.09);color:#fff;font-weight:700}
+    main{padding:26px;display:grid;gap:20px;align-content:start}.top{display:flex;justify-content:space-between;gap:16px;align-items:end;flex-wrap:wrap}.top h2{font-size:29px;margin:0 0 4px}.top p{margin:0;color:var(--muted)}
+    .month{display:flex;align-items:center;gap:8px;padding:8px;background:#fff;border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow)}.month button{width:36px;height:36px;border-radius:9px;background:#edf3f5;color:var(--brand);font-size:22px;font-weight:800}.month strong{min-width:145px;text-align:center;text-transform:capitalize}
+    .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.metric{background:#fff;border:1px solid var(--line);border-radius:12px;padding:17px;box-shadow:var(--shadow)}.metric span{display:block;color:var(--muted);font-size:12px;margin-bottom:8px}.metric strong{display:block;font-size:clamp(21px,2.6vw,31px);overflow-wrap:anywhere}.metric small{display:block;color:var(--muted);font-size:12px;margin-top:8px;line-height:1.35}
+    .grid2{display:grid;grid-template-columns:minmax(310px,.9fr) minmax(360px,1.1fr);gap:16px;align-items:start}.panel{background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}.head{padding:17px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;align-items:center}.head h3{margin:0;font-size:18px}.head p{margin:3px 0 0;color:var(--muted);font-size:12px}.body{padding:18px}
+    form{display:grid;gap:11px}.fg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.span2{grid-column:1/-1}label{display:grid;gap:6px;color:var(--muted);font-size:12px}input,select{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:9px;background:#fbfcfd;color:var(--ink)}input:focus,select:focus{outline:3px solid rgba(18,108,116,.14);border-color:var(--brand)}.check{display:flex;gap:8px;align-items:center}.check input{width:auto}
+    .actions{display:flex;gap:8px;flex-wrap:wrap}.primary,.ghost,.danger{min-height:40px;padding:9px 13px;border-radius:9px;font-weight:750}.primary{background:var(--brand);color:#fff}.ghost{background:#edf3f5;color:var(--brand)}.danger{background:var(--sb);color:var(--bad)}
+    .list{display:grid;gap:10px;margin-top:14px}.item{border:1px solid var(--line);border-radius:10px;padding:13px;background:#fcfdfd;display:grid;gap:8px}.row{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.title strong{display:block}.title span{display:block;color:var(--muted);font-size:12px;margin-top:3px}.money{font-weight:850;white-space:nowrap}.chips{display:flex;gap:7px;flex-wrap:wrap}.chip{font-size:11px;background:#eef4f6;color:var(--muted);padding:5px 8px;border-radius:999px}.chip.good{background:var(--sg);color:var(--good)}.chip.warn{background:var(--sw);color:var(--warn)}.chip.bad{background:var(--sb);color:var(--bad)}
+    .table{overflow:auto}table{width:100%;border-collapse:collapse;min-width:680px}th,td{padding:11px 9px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:11px;text-transform:uppercase;color:var(--muted)}
+    .status{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;font-size:11px;font-weight:800}.status.good{background:var(--sg);color:var(--good)}.status.warn{background:var(--sw);color:var(--warn)}.status.bad{background:var(--sb);color:var(--bad)}
+    .empty{padding:20px;text-align:center;border:1px dashed var(--line);border-radius:10px;color:var(--muted);background:#fbfcfd}.barrow{display:grid;grid-template-columns:130px 1fr auto;gap:10px;align-items:center}.bar{height:11px;border-radius:999px;background:#e8eef1;overflow:hidden}.fill{height:100%;background:linear-gradient(90deg,var(--brand),var(--brand2));min-width:2px}.result{margin-top:14px;padding:14px;border:1px solid var(--line);border-radius:10px;line-height:1.45}.result.good{background:var(--sg)}.result.warn{background:var(--sw)}.result.orange{background:var(--so)}.result.bad{background:var(--sb)}.mini{font-size:12px;color:var(--muted)}
+    .cardbox{display:grid;gap:10px}.cardline{border:1px solid var(--line);border-radius:11px;padding:14px;display:grid;gap:9px}.cardline-top{display:flex;justify-content:space-between;gap:10px}.cardline h4{margin:0;font-size:16px}.cardline .sub{font-size:12px;color:var(--muted);margin-top:3px}.progress{height:8px;background:#e9eef1;border-radius:999px;overflow:hidden}.progress>div{height:100%;background:var(--brand)}
+    @media(max-width:1000px){.shell{grid-template-columns:1fr}aside{position:static;height:auto}.metrics{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}nav{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:620px){main{padding:16px}aside{padding:20px 16px}.metrics{grid-template-columns:1fr}.fg{grid-template-columns:1fr}.span2{grid-column:auto}.top h2{font-size:24px}.month{width:100%;justify-content:space-between}.row,.cardline-top{display:grid}.money{white-space:normal}.barrow{grid-template-columns:1fr}.backup{margin-top:0}}
   </style>
 </head>
 <body>
-  <div class="app">
-    <header class="topbar">
-      <div class="brand">
-        <div class="brand-mark" aria-hidden="true">$</div>
-        <div>
-          <h1>Mi plata al día</h1>
-          <p>Ingresos, egresos y saldo mensual</p>
-        </div>
-      </div>
-
-      <div class="month-picker" aria-label="Elegir mes">
-        <button id="previousMonth" type="button" title="Mes anterior" aria-label="Mes anterior">‹</button>
-        <strong id="monthLabel"></strong>
-        <button id="nextMonth" type="button" title="Mes siguiente" aria-label="Mes siguiente">›</button>
-      </div>
-    </header>
-
-    <nav class="module-nav" aria-label="Módulos y acciones de Mi plata">
-      <a class="active" href="./finanzas-app.html?v=8" aria-current="page">Ingresos y egresos</a>
-      <a href="./seguimiento-compras.html?v=8">Seguimiento de compras</a>
-      <a href="./calculadora-compra.html?v=8">Calculadora de compra</a>
-      <button id="exportAllButton" class="export-data" type="button">⇩ Exportar datos</button>
+<div class="shell">
+  <aside>
+    <div class="brand"><div class="logo">$</div><h1>Mi Plata<br>2.0</h1></div>
+    <p class="side-note">Controlá ingresos, gastos, tarjetas, cuotas y próximos meses desde un solo lugar.</p>
+    <nav>
+      <button class="nav active" data-view="dashboard">⌂ Resumen</button>
+      <button class="nav" data-view="movements">＋ Ingresos y gastos</button>
+      <button class="nav" data-view="cards">▤ Tarjetas</button>
+      <button class="nav" data-view="projection">▥ Proyección</button>
+      <button class="nav" data-view="simulator">◆ Simular compra</button>
     </nav>
+    <div class="backup">
+      <button id="exportBtn">⇩ Exportar respaldo</button>
+      <button id="importBtn">⇧ Importar respaldo</button>
+      <input id="importFile" class="hidden" type="file" accept="application/json,.json">
+    </div>
+  </aside>
 
-    <section class="summary" aria-label="Resumen del mes">
-      <article class="metric income">
-        <span class="metric-label"><span class="metric-dot"></span>Ingresos</span>
-        <strong id="incomeTotal">$ 0</strong>
-      </article>
-      <article class="metric expense">
-        <span class="metric-label"><span class="metric-dot"></span>Egresos</span>
-        <strong id="expenseTotal">$ 0</strong>
-      </article>
-      <article id="balanceCard" class="metric">
-        <span class="metric-label"><span class="metric-dot"></span>Saldo</span>
-        <strong id="balanceTotal">$ 0</strong>
-      </article>
+  <main>
+    <div class="top">
+      <div><h2 id="pageTitle">Resumen mensual</h2><p id="pageSub">Ingresos, gastos y tarjetas del mes.</p></div>
+      <div class="month"><button id="prev">‹</button><strong id="monthLabel"></strong><button id="next">›</button></div>
+    </div>
+
+    <div class="metrics" id="metrics"></div>
+
+    <section id="dashboard" class="view panel">
+      <div class="head"><div><h3>Tarjetas este mes</h3><p>Cuánto corresponde pagar por cada tarjeta y su estado.</p></div></div>
+      <div class="body"><div id="monthCards" class="cardbox"></div></div>
     </section>
 
-    <main class="content">
-      <section class="panel" aria-labelledby="formTitle">
-        <div class="panel-head">
-          <div class="section-heading">
-            <h2 id="formTitle">Nuevo movimiento</h2>
-            <p>Registrá el dinero que entra o sale.</p>
+    <section id="movements" class="view hidden">
+      <div class="grid2">
+        <div class="panel">
+          <div class="head"><div><h3>Agregar ingreso</h3><p>Sueldo, ventas, extras u otros ingresos.</p></div></div>
+          <div class="body">
+            <form id="incomeForm"><div class="fg">
+              <label>Descripción<input id="incomeName" required placeholder="Ej: Sueldo"></label>
+              <label>Monto<input id="incomeAmount" type="number" min="0" step="0.01" required placeholder="0"></label>
+              <label>Fecha<input id="incomeDate" type="date" required></label>
+              <label>Categoría<select id="incomeCategory"><option>Sueldo</option><option>Venta</option><option>Extra</option><option>Reintegro</option><option>Otro</option></select></label>
+              <label class="check span2"><input id="incomeRecurring" type="checkbox"> Repetir este ingreso todos los meses desde esta fecha</label>
+            </div><button class="primary" type="submit">Agregar ingreso</button></form>
           </div>
         </div>
-        <div class="panel-body">
-          <form id="movementForm">
-            <label for="movementType">Tipo de movimiento
-              <select id="movementType" required>
-                <option value="income">Ingreso</option>
-                <option value="expense">Egreso</option>
-              </select>
-            </label>
-
-            <div class="payment-method-block">
-              <label for="paymentMethod">Cuenta, billetera o tarjeta
-                <select id="paymentMethod">
-                  <option value="">Sin asociar</option>
-                </select>
-              </label>
-              <p class="payment-method-help">Elegí un medio guardado o creá uno nuevo.</p>
-              <button id="createPaymentMethodButton" class="create-method-button" type="button">+ Crear medio de pago</button>
-              <div id="paymentMethodCreator" class="payment-method-creator hidden">
-                <label for="newPaymentMethod">Nombre del nuevo medio
-                  <input id="newPaymentMethod" maxlength="50" placeholder="Ej.: Ualá, Visa Galicia, Mercado Pago..." autocomplete="off">
-                </label>
-                <div class="payment-method-actions">
-                  <button id="savePaymentMethodButton" class="primary" type="button">Guardar medio</button>
-                  <button id="cancelPaymentMethodButton" class="secondary" type="button">Cancelar</button>
-                </div>
-              </div>
-            </div>
-
-            <label for="movementAmount">Monto
-              <input id="movementAmount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0,00" required>
-            </label>
-
-            <label for="movementDate">Fecha
-              <input id="movementDate" type="date" required>
-            </label>
-
-            <label id="expenseTypeField" class="hidden" for="expenseType">Tipo de egreso
-              <input id="expenseType" list="expenseTypeSuggestions" maxlength="50" placeholder="Ej.: Internet, tarjeta de crédito, alquiler..." autocomplete="off">
-              <datalist id="expenseTypeSuggestions">
-                <option value="Internet">
-                <option value="Tarjeta de crédito">
-                <option value="Alquiler">
-                <option value="Servicios">
-                <option value="Supermercado">
-                <option value="Transporte">
-                <option value="Salud">
-                <option value="Educación">
-                <option value="Impuestos">
-                <option value="Entretenimiento">
-              </datalist>
-            </label>
-
-            <label for="movementDescription">Detalle
-              <input id="movementDescription" maxlength="80" placeholder="Opcional: sueldo, compra, transferencia...">
-            </label>
-
-            <div class="form-actions">
-              <button id="submitButton" class="primary" type="submit">Agregar movimiento</button>
-              <button id="cancelButton" class="secondary hidden" type="button">Cancelar edición</button>
-            </div>
-          </form>
-          <p id="statusMessage" class="status-message" role="status" aria-live="polite"></p>
-        </div>
-      </section>
-
-      <section class="panel" aria-labelledby="listTitle">
-        <div class="panel-head">
-          <div class="section-heading">
-            <h2 id="listTitle">Movimientos del mes</h2>
-            <p id="listSubtitle">Ingresos y egresos registrados.</p>
-          </div>
-          <span id="movementCount" class="movement-count">0</span>
-        </div>
-        <div class="panel-body">
-          <div id="movementList" class="movement-list"></div>
-          <div id="emptyState" class="empty hidden">
-            Todavía no hay movimientos en este mes.<br>
-            Agregá el primer ingreso o egreso.
+        <div class="panel">
+          <div class="head"><div><h3>Agregar gasto</h3><p>Combustible, comida, servicios, efectivo o transferencia.</p></div></div>
+          <div class="body">
+            <form id="expenseForm"><div class="fg">
+              <label>Descripción<input id="expenseName" required placeholder="Ej: Combustible"></label>
+              <label>Monto<input id="expenseAmount" type="number" min="0" step="0.01" required placeholder="0"></label>
+              <label>Fecha<input id="expenseDate" type="date" required></label>
+              <label>Categoría<select id="expenseCategory"><option>Combustible</option><option>Supermercado</option><option>Servicios</option><option>Comida</option><option>Hogar</option><option>Salud</option><option>Transporte</option><option>Otro</option></select></label>
+              <label>Medio de pago<select id="expenseMethod"><option>Efectivo</option><option>Débito</option><option>Transferencia</option><option>Billetera virtual</option></select></label>
+              <label class="check"><input id="expenseRecurring" type="checkbox"> Repetir todos los meses</label>
+            </div><button class="primary" type="submit">Agregar gasto</button></form>
           </div>
         </div>
-      </section>
-    </main>
+      </div>
+      <div class="grid2" style="margin-top:16px">
+        <div class="panel"><div class="head"><div><h3>Ingresos del mes</h3></div></div><div class="body"><div id="incomeList" class="list"></div></div></div>
+        <div class="panel"><div class="head"><div><h3>Gastos del mes</h3></div></div><div class="body"><div id="expenseList" class="list"></div></div></div>
+      </div>
+    </section>
 
-    <p class="storage-note">Los movimientos se guardan únicamente en este dispositivo.</p>
-  </div>
+    <section id="cards" class="view hidden">
+      <div class="grid2">
+        <div class="panel">
+          <div class="head"><div><h3>Mis tarjetas</h3><p>Cargá límite, cierre y vencimiento.</p></div></div>
+          <div class="body">
+            <form id="cardForm"><div class="fg">
+              <label>Nombre<input id="cardName" required placeholder="Ej: Cordobesa Oro"></label>
+              <label>Banco / entidad<input id="cardBank" placeholder="Ej: Bancor"></label>
+              <label>Límite<input id="cardLimit" type="number" min="0" step="0.01" placeholder="0"></label>
+              <label>Día de cierre<input id="cardClosing" type="number" min="1" max="31" placeholder="25"></label>
+              <label>Día de vencimiento<input id="cardDue" type="number" min="1" max="31" placeholder="10"></label>
+            </div><button class="primary" type="submit">Agregar tarjeta</button></form>
+            <div id="cardList" class="list"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="head"><div><h3>Nueva compra con tarjeta</h3><p>La app distribuye las cuotas automáticamente.</p></div></div>
+          <div class="body">
+            <form id="purchaseForm"><div class="fg">
+              <label>Tarjeta<select id="purchaseCard" required></select></label>
+              <label>Compra<input id="purchaseName" required placeholder="Ej: Aire acondicionado"></label>
+              <label>Monto total<input id="purchaseTotal" type="number" min="0" step="0.01" required placeholder="0"></label>
+              <label>Cuotas<input id="purchaseInstallments" type="number" min="1" step="1" value="1" required></label>
+              <label>Valor cuota<input id="purchaseAmount" type="number" min="0" step="0.01" placeholder="Se calcula solo"></label>
+              <label>Cuota que empieza ahora<input id="purchaseCurrent" type="number" min="1" step="1" value="1" required></label>
+              <label>Primer mes a mostrar<input id="purchaseMonth" type="month" required></label>
+              <label>Categoría<select id="purchaseCategory"><option>Hogar</option><option>Tecnología</option><option>Supermercado</option><option>Ropa</option><option>Salud</option><option>Viajes</option><option>Otro</option></select></label>
+              <label>Cargos/impuestos del primer mes<input id="purchaseExtra" type="number" min="0" step="0.01" value="0"></label>
+              <label>Notas<input id="purchaseNote" placeholder="Opcional"></label>
+            </div><button class="primary" type="submit">Agregar compra</button></form>
+          </div>
+        </div>
+      </div>
 
-  <script>
-    (function () {
-      "use strict";
+      <div class="grid2" style="margin-top:16px">
+        <div class="panel">
+          <div class="head"><div><h3>Cargo del resumen</h3><p>Impuestos, intereses, seguro u otro cargo mensual.</p></div></div>
+          <div class="body"><form id="chargeForm"><div class="fg">
+            <label>Tarjeta<select id="chargeCard" required></select></label>
+            <label>Mes<input id="chargeMonth" type="month" required></label>
+            <label>Descripción<input id="chargeName" required placeholder="Ej: Impuesto de sellos"></label>
+            <label>Monto<input id="chargeAmount" type="number" min="0" step="0.01" required placeholder="0"></label>
+          </div><button class="primary" type="submit">Agregar cargo</button></form></div>
+        </div>
+        <div class="panel">
+          <div class="head"><div><h3>Registrar pago de tarjeta</h3><p>Podés registrar un pago total o parcial del mes.</p></div></div>
+          <div class="body"><form id="paymentForm"><div class="fg">
+            <label>Tarjeta<select id="paymentCard" required></select></label>
+            <label>Mes<input id="paymentMonth" type="month" required></label>
+            <label>Monto pagado<input id="paymentAmount" type="number" min="0" step="0.01" required placeholder="0"></label>
+            <label>Fecha de pago<input id="paymentDate" type="date" required></label>
+          </div><button class="primary" type="submit">Registrar pago</button></form></div>
+        </div>
+      </div>
 
-      var STORAGE_KEY = "mi-plata-movimientos-v1";
-      var PURCHASES_KEY = "mi-plata-seguimiento-compras-v1";
-      var PAYMENT_METHODS_KEY = "mi-plata-medios-pago-v1";
-      var DEFAULT_PAYMENT_METHODS = ["Efectivo", "Cuenta bancaria", "Ualá", "Visa", "Mastercard", "Naranja X"];
-      var state = loadState();
-      var selectedMonth = monthKey(new Date());
-      var editingId = null;
-      var statusTimer = null;
+      <div class="panel" style="margin-top:16px"><div class="head"><div><h3>Compras y cargos cargados</h3></div></div><div class="body"><div id="purchaseList" class="list"></div><div id="chargeList" class="list"></div></div></div>
+    </section>
 
-      var elements = {
-        form: document.querySelector("#movementForm"),
-        type: document.querySelector("#movementType"),
-        paymentMethod: document.querySelector("#paymentMethod"),
-        createPaymentMethodButton: document.querySelector("#createPaymentMethodButton"),
-        paymentMethodCreator: document.querySelector("#paymentMethodCreator"),
-        newPaymentMethod: document.querySelector("#newPaymentMethod"),
-        savePaymentMethodButton: document.querySelector("#savePaymentMethodButton"),
-        cancelPaymentMethodButton: document.querySelector("#cancelPaymentMethodButton"),
-        amount: document.querySelector("#movementAmount"),
-        date: document.querySelector("#movementDate"),
-        expenseTypeField: document.querySelector("#expenseTypeField"),
-        expenseType: document.querySelector("#expenseType"),
-        description: document.querySelector("#movementDescription"),
-        submitButton: document.querySelector("#submitButton"),
-        cancelButton: document.querySelector("#cancelButton"),
-        formTitle: document.querySelector("#formTitle"),
-        statusMessage: document.querySelector("#statusMessage"),
-        previousMonth: document.querySelector("#previousMonth"),
-        nextMonth: document.querySelector("#nextMonth"),
-        monthLabel: document.querySelector("#monthLabel"),
-        incomeTotal: document.querySelector("#incomeTotal"),
-        expenseTotal: document.querySelector("#expenseTotal"),
-        balanceTotal: document.querySelector("#balanceTotal"),
-        balanceCard: document.querySelector("#balanceCard"),
-        movementList: document.querySelector("#movementList"),
-        movementCount: document.querySelector("#movementCount"),
-        listSubtitle: document.querySelector("#listSubtitle"),
-        emptyState: document.querySelector("#emptyState"),
-        exportAllButton: document.querySelector("#exportAllButton")
-      };
+    <section id="projection" class="view hidden panel">
+      <div class="head"><div><h3>Próximos 12 meses</h3><p>Proyección de ingresos, gastos y tarjetas ya comprometidas.</p></div></div>
+      <div class="body"><div id="projectionList" class="list"></div></div>
+    </section>
 
-      elements.date.value = dateForMonth(selectedMonth);
-      syncExpenseTypeField();
-      refreshPaymentMethods();
+    <section id="simulator" class="view hidden panel">
+      <div class="head"><div><h3>¿Qué impacto tendría una compra?</h3><p>Simula el compromiso mensual antes de comprar.</p></div></div>
+      <div class="body">
+        <form id="simForm"><div class="fg">
+          <label>Tarjeta<select id="simCard"></select></label>
+          <label>Compra<input id="simName" required placeholder="Ej: Celular"></label>
+          <label>Monto total<input id="simTotal" type="number" min="0" step="0.01" required placeholder="0"></label>
+          <label>Cuotas<input id="simInstallments" type="number" min="1" step="1" value="1" required></label>
+          <label>Primer mes<input id="simMonth" type="month" required></label>
+          <label>Margen mínimo que querés conservar<input id="simReserve" type="number" min="0" step="0.01" value="0"></label>
+        </div><button class="primary" type="submit">Calcular impacto</button></form>
+        <div id="simResult" class="result hidden"></div>
+      </div>
+    </section>
+  </main>
+</div>
+<script>
+  const STORAGE = "mi-plata-al-dia-v2";
+  const LEGACY = "mi-plata-al-dia-v1";
+  const CLASSIC_MOVEMENTS = "mi-plata-movimientos-v1";
+  const CLASSIC_PURCHASES = "mi-plata-seguimiento-compras-v1";
+  const monthNames = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+  let selectedMonth = monthKey(new Date());
+  let currentView = "dashboard";
+  const state = load();
 
-      elements.form.addEventListener("submit", saveMovement);
-      elements.type.addEventListener("change", syncExpenseTypeField);
-      elements.cancelButton.addEventListener("click", resetForm);
-      elements.createPaymentMethodButton.addEventListener("click", openPaymentMethodCreator);
-      elements.savePaymentMethodButton.addEventListener("click", saveNewPaymentMethod);
-      elements.cancelPaymentMethodButton.addEventListener("click", closePaymentMethodCreator);
-      elements.newPaymentMethod.addEventListener("keydown", function (event) {
-        if (event.key !== "Enter") return;
-        event.preventDefault();
-        saveNewPaymentMethod();
+  const $ = s => document.querySelector(s);
+  const money = n => new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(Number(n)||0);
+  const uid = () => crypto?.randomUUID?.() || `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const sum = xs => xs.reduce((a,b)=>a+(Number(b)||0),0);
+  const esc = t => String(t??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+
+  function monthKey(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}` }
+  function addMonths(k,n){ const [y,m]=k.split("-").map(Number); return monthKey(new Date(y,m-1+n,1)); }
+  function monthDiff(a,b){ const [ay,am]=a.split("-").map(Number),[by,bm]=b.split("-").map(Number); return (by-ay)*12+(bm-am); }
+  function monthLabel(k){ const [y,m]=k.split("-").map(Number); return `${monthNames[m-1]} ${y}`; }
+  function monthOfDate(d){ return String(d||"").slice(0,7); }
+  function todayForMonth(k){ const now=new Date(); const current=monthKey(now); return current===k ? `${k}-${String(now.getDate()).padStart(2,"0")}` : `${k}-01`; }
+
+  function emptyState(){ return {version:2,incomes:[],expenses:[],cards:[],cardPurchases:[],cardCharges:[],cardPayments:[]}; }
+  function normalizeV2(x){
+    const s=emptyState();
+    s.incomes=Array.isArray(x.incomes)?x.incomes:[]; s.expenses=Array.isArray(x.expenses)?x.expenses:[];
+    s.cards=(Array.isArray(x.cards)?x.cards:[]).map(c=>({id:c.id||uid(),name:String(c.name||"Tarjeta"),bank:String(c.bank||""),limit:Number(c.limit)||0,closingDay:Number(c.closingDay)||0,dueDay:Number(c.dueDay)||0}));
+    s.cardPurchases=(Array.isArray(x.cardPurchases)?x.cardPurchases:[]).map(p=>({id:p.id||uid(),cardId:p.cardId||"",name:String(p.name||"Compra"),total:Number(p.total)||0,amount:Number(p.amount)||0,installments:Math.max(1,Number(p.installments)||1),startInstallment:Math.max(1,Number(p.startInstallment)||1),startMonth:p.startMonth||selectedMonth,category:String(p.category||"Otro"),extraFirst:Number(p.extraFirst)||0,note:String(p.note||"")}));
+    s.cardCharges=Array.isArray(x.cardCharges)?x.cardCharges:[]; s.cardPayments=Array.isArray(x.cardPayments)?x.cardPayments:[];
+    return s;
+  }
+  function migrateLegacy(x){
+    const s=emptyState(); const now=selectedMonth;
+    s.incomes=(x.money||[]).map(m=>({id:uid(),name:m.name||"Saldo inicial",amount:Number(m.amount)||0,date:`${now}-01`,category:m.type||"Saldo inicial",recurring:false,note:"Migrado desde Mi Plata anterior"}));
+    s.cards=(x.cards||[]).map(c=>({id:c.id||uid(),name:c.name||"Tarjeta",bank:"",limit:0,closingDay:0,dueDay:0}));
+    s.cardPurchases=(x.cardPurchases||[]).map(p=>({id:p.id||uid(),cardId:p.cardId||"",name:p.name||"Compra",total:Number(p.total)||0,amount:Number(p.amount)||0,installments:Math.max(1,Number(p.installments)||1),startInstallment:Math.max(1,Number(p.startInstallment)||1),startMonth:p.startMonth||now,category:"Otro",extraFirst:0,note:p.note||""}));
+    (x.debts||[]).forEach(d=>{
+      if(d.type==="fixed") s.expenses.push({id:uid(),name:d.name||"Gasto fijo",amount:Number(d.amount)||0,date:`${d.startMonth||now}-01`,category:d.category||"Otro",method:"Otro",recurring:true,note:d.note||""});
+      else { const start=Math.max(1,Number(d.startInstallment)||1), total=Math.max(start,Number(d.installments)||1); for(let i=start;i<=total;i++){ const mk=addMonths(d.startMonth||now,i-start); s.expenses.push({id:uid(),name:`${d.name||"Cuota"} ${i}/${total}`,amount:Number(d.amount)||0,date:`${mk}-01`,category:d.category||"Otro",method:"Otro",recurring:false,note:d.note||""}); } }
+    });
+    (x.cardPayments||[]).forEach(p=>{ s.cardPayments.push({id:uid(),cardId:p.cardId||"",month:p.month||now,amount:Number(p.paidAmount)||0,date:`${p.month||now}-01`}); if(Number(p.financedAmount)>0&&Number(p.financedInstallments)>0){ s.cardPurchases.push({id:uid(),cardId:p.cardId||"",name:"Financiación de resumen",total:Number(p.financedAmount)||0,amount:Number(p.financedInstallmentAmount)||((Number(p.financedAmount)||0)/(Number(p.financedInstallments)||1)),installments:Number(p.financedInstallments)||1,startInstallment:1,startMonth:addMonths(p.month||now,1),category:"Financiación",extraFirst:0,note:"Migrado desde saldo financiado"}); }});
+    return s;
+  }
+  function hasData(s){
+    return !!(s && ((s.incomes&&s.incomes.length)||(s.expenses&&s.expenses.length)||(s.cards&&s.cards.length)||(s.cardPurchases&&s.cardPurchases.length)||(s.cardCharges&&s.cardCharges.length)||(s.cardPayments&&s.cardPayments.length)));
+  }
+  function migrateClassicPayload(payload){
+    const s=emptyState();
+    const movements=Array.isArray(payload?.movements)?payload.movements:[];
+    const purchases=Array.isArray(payload?.purchases)?payload.purchases:[];
+    movements.forEach(m=>{
+      const amount=Number(m.amount)||0;
+      if(!amount||!m.date) return;
+      if(m.type==="income"){
+        s.incomes.push({id:m.id||uid(),name:String(m.description||"Ingreso"),amount,date:m.date,category:"Ingreso",recurring:false,note:m.paymentMethod?`Medio: ${m.paymentMethod}`:""});
+      } else if(m.type==="expense"){
+        s.expenses.push({id:m.id||uid(),name:String(m.description||m.expenseType||"Egreso"),amount,date:m.date,category:String(m.expenseType||"Otro"),method:String(m.paymentMethod||"Otro"),recurring:false,note:"Migrado desde Mi Plata anterior"});
+      }
+    });
+    const cardByName=new Map();
+    purchases.filter(p=>p&&p.kind!=="fixed").forEach(p=>{
+      const name=String(p.card||"Tarjeta").trim()||"Tarjeta";
+      const key=name.toLocaleLowerCase("es");
+      if(!cardByName.has(key)){
+        const c={id:uid(),name,bank:"",limit:0,closingDay:0,dueDay:0};
+        cardByName.set(key,c);
+        s.cards.push(c);
+      }
+    });
+    purchases.forEach(p=>{
+      if(!p) return;
+      const amount=Number(p.amount)||0;
+      if(!amount||!p.date) return;
+      if(p.kind==="fixed"){
+        if(p.active===false) return;
+        s.expenses.push({id:p.id||uid(),name:String(p.name||"Gasto fijo"),amount,date:p.date,category:"Gasto fijo",method:String(p.card||"Otro"),recurring:true,note:String(p.notes||"")});
+        return;
+      }
+      const total=Math.max(1,Math.floor(Number(p.totalInstallments)||1));
+      const paid=Math.min(total,Math.max(0,Math.floor(Number(p.paidInstallments)||0)));
+      if(paid>=total) return;
+      const name=String(p.card||"Tarjeta").trim()||"Tarjeta";
+      const card=cardByName.get(name.toLocaleLowerCase("es"));
+      s.cardPurchases.push({
+        id:p.id||uid(),
+        cardId:card?.id||"",
+        name:String(p.name||"Compra"),
+        total:amount,
+        amount:amount/total,
+        installments:total,
+        startInstallment:paid+1,
+        startMonth:selectedMonth,
+        category:"Compra migrada",
+        extraFirst:0,
+        note:[String(p.notes||""),`Migrada con ${paid}/${total} cuotas marcadas como pagadas`].filter(Boolean).join(" · ")
       });
-      elements.previousMonth.addEventListener("click", function () { changeMonth(-1); });
-      elements.nextMonth.addEventListener("click", function () { changeMonth(1); });
-      elements.movementList.addEventListener("click", handleListAction);
-      elements.exportAllButton.addEventListener("click", exportAllData);
-      window.addEventListener("storage", refreshPaymentMethods);
-
-      render();
-
-      function saveMovement(event) {
-        event.preventDefault();
-
-        var amount = Number(elements.amount.value);
-        var type = elements.type.value;
-        var date = elements.date.value;
-        var paymentMethod = elements.paymentMethod.value.trim();
-        var expenseType = elements.expenseType.value.trim();
-
-        if ((type !== "income" && type !== "expense") || !Number.isFinite(amount) || amount <= 0 || !validDate(date)) {
-          showStatus("Revisá el tipo, el monto y la fecha.", true);
-          return;
-        }
-
-        if (type === "expense" && !expenseType) {
-          showStatus("Indicá el tipo de egreso.", true);
-          elements.expenseType.focus();
-          return;
-        }
-
-        var wasEditing = Boolean(editingId);
-        var movement = {
-          id: editingId || createId(),
-          type: type,
-          paymentMethod: paymentMethod,
-          amount: amount,
-          date: date,
-          expenseType: type === "expense" ? expenseType : "",
-          description: elements.description.value.trim()
-        };
-
-        if (editingId) {
-          var index = state.movements.findIndex(function (item) {
-            return item.id === editingId;
-          });
-          if (index !== -1) state.movements[index] = movement;
-        } else {
-          state.movements.push(movement);
-        }
-
-        selectedMonth = date.slice(0, 7);
-        rememberPaymentMethod(paymentMethod);
-        saveState();
-        resetForm();
-        showStatus(wasEditing ? "Movimiento actualizado." : "Movimiento agregado.");
-        render();
+    });
+    return s;
+  }
+  function load(){
+    try{
+      const v2raw=JSON.parse(localStorage.getItem(STORAGE)||"null");
+      if(v2raw){
+        const v2=normalizeV2(v2raw);
+        if(hasData(v2)) return v2;
       }
-
-      function handleListAction(event) {
-        var button = event.target.closest("button[data-action]");
-        if (!button) return;
-
-        var id = button.getAttribute("data-id");
-        var action = button.getAttribute("data-action");
-        if (action === "edit") editMovement(id);
-        if (action === "delete") deleteMovement(id);
+      const old=JSON.parse(localStorage.getItem(LEGACY)||"null");
+      if(old){
+        const migrated=migrateLegacy(old);
+        if(hasData(migrated)){ localStorage.setItem(STORAGE,JSON.stringify(migrated)); return migrated; }
       }
-
-      function editMovement(id) {
-        var movement = state.movements.find(function (item) {
-          return item.id === id;
+      const movements=JSON.parse(localStorage.getItem(CLASSIC_MOVEMENTS)||"null");
+      const purchases=JSON.parse(localStorage.getItem(CLASSIC_PURCHASES)||"null");
+      if(movements||purchases){
+        const migrated=migrateClassicPayload({
+          movements:Array.isArray(movements?.movements)?movements.movements:[],
+          purchases:Array.isArray(purchases?.purchases)?purchases.purchases:[]
         });
-        if (!movement) return;
-
-        editingId = movement.id;
-        elements.type.value = movement.type;
-        elements.paymentMethod.value = movement.paymentMethod || "";
-        elements.amount.value = movement.amount;
-        elements.date.value = movement.date;
-        elements.expenseType.value = movement.expenseType || "";
-        elements.description.value = movement.description;
-        syncExpenseTypeField();
-        elements.formTitle.textContent = "Editar movimiento";
-        elements.submitButton.textContent = "Guardar cambios";
-        elements.cancelButton.classList.remove("hidden");
-        elements.amount.focus();
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        if(hasData(migrated)){ localStorage.setItem(STORAGE,JSON.stringify(migrated)); return migrated; }
       }
+      if(v2raw) return normalizeV2(v2raw);
+    }catch(e){}
+    return emptyState();
+  }
+  function save(){ localStorage.setItem(STORAGE,JSON.stringify(state)); }
 
-      function deleteMovement(id) {
-        var movement = state.movements.find(function (item) {
-          return item.id === id;
-        });
-        if (!movement) return;
+  function recurringActive(item,month){ const start=monthOfDate(item.date); return item.recurring ? monthDiff(start,month)>=0 : start===month; }
+  function incomesForMonth(month){ return state.incomes.filter(x=>recurringActive(x,month)); }
+  function expensesForMonth(month){ return state.expenses.filter(x=>recurringActive(x,month)); }
+  function incomeTotal(month){ return sum(incomesForMonth(month).map(x=>x.amount)); }
+  function expenseTotal(month){ return sum(expensesForMonth(month).map(x=>x.amount)); }
+  function cardName(id){ return state.cards.find(c=>c.id===id)?.name||"Tarjeta"; }
 
-        var label = movement.type === "income" ? "ingreso" : "egreso";
-        if (!window.confirm("¿Querés eliminar este " + label + "?")) return;
+  function installmentForMonth(p,month){ const diff=monthDiff(p.startMonth,month); if(diff<0)return null; const n=Math.max(1,Number(p.startInstallment)||1)+diff; return n<=Number(p.installments)?n:null; }
+  function purchaseAmountForMonth(p,month){ const n=installmentForMonth(p,month); if(!n)return 0; return (Number(p.amount)||0)+(month===p.startMonth?(Number(p.extraFirst)||0):0); }
+  function cardPurchasesForMonth(cardId,month){ return state.cardPurchases.filter(p=>p.cardId===cardId&&installmentForMonth(p,month)).map(p=>({...p,installmentNumber:installmentForMonth(p,month),due:purchaseAmountForMonth(p,month)})); }
+  function cardChargesForMonth(cardId,month){ return state.cardCharges.filter(c=>c.cardId===cardId&&c.month===month); }
+  function cardDue(cardId,month){ return sum(cardPurchasesForMonth(cardId,month).map(p=>p.due))+sum(cardChargesForMonth(cardId,month).map(c=>c.amount)); }
+  function cardPaid(cardId,month){ return sum(state.cardPayments.filter(p=>p.cardId===cardId&&p.month===month).map(p=>p.amount)); }
+  function cardsDueTotal(month){ return sum(state.cards.map(c=>cardDue(c.id,month))); }
+  function cardsPaidTotal(month){ return sum(state.cards.map(c=>cardPaid(c.id,month))); }
+  function outstandingCard(cardId,fromMonth){ let total=0; for(let i=0;i<60;i++) total+=cardDue(cardId,addMonths(fromMonth,i)); return total; }
 
-        state.movements = state.movements.filter(function (item) {
-          return item.id !== id;
-        });
+  function metric(label,value,help){ return `<article class="metric"><span>${esc(label)}</span><strong>${esc(value)}</strong><small>${esc(help)}</small></article>`; }
+  function render(){
+    $("#monthLabel").textContent=monthLabel(selectedMonth); setDefaults(); renderHeader(); renderMetrics(); renderDashboard(); renderMovements(); renderCards(); renderProjection(); fillCardSelects();
+  }
+  function renderHeader(){ const m={dashboard:["Resumen mensual","Ingresos, gastos y tarjetas del mes."],movements:["Ingresos y gastos","Movimientos del mes seleccionado."],cards:["Tarjetas","Compras, cuotas, cargos y pagos."],projection:["Proyección","Cómo vienen los próximos meses."],simulator:["Simular compra","Medí el impacto antes de comprar."]}; const [t,s]=m[currentView]; $("#pageTitle").textContent=t; $("#pageSub").textContent=s; }
+  function renderMetrics(){
+    const inc=incomeTotal(selectedMonth), exp=expenseTotal(selectedMonth), cards=cardsDueTotal(selectedMonth), free=inc-exp-cards;
+    $("#metrics").innerHTML=[metric("Ingresos",money(inc),`${incomesForMonth(selectedMonth).length} ingresos considerados.`),metric("Gastos fuera de tarjeta",money(exp),`${expensesForMonth(selectedMonth).length} gastos del mes.`),metric("Tarjetas a pagar",money(cards),`${state.cards.length} tarjetas cargadas.`),metric("Disponible estimado",money(free),free>=0?"Luego de cubrir gastos y tarjetas.":"Tus compromisos superan los ingresos del mes.")].join("");
+  }
+  function renderDashboard(){
+    if(!state.cards.length){ $("#monthCards").innerHTML=`<div class="empty">Todavía no cargaste tarjetas.</div>`; return; }
+    $("#monthCards").innerHTML=state.cards.map(c=>{
+      const due=cardDue(c.id,selectedMonth), paid=cardPaid(c.id,selectedMonth), pending=Math.max(0,due-paid); const st=due===0?["good","Sin saldo"]:pending<=.01?["good","Pagada"]:paid>0?["warn","Pago parcial"]:["bad","Pendiente"];
+      return `<div class="cardline"><div class="cardline-top"><div><h4>${esc(c.name)}</h4><div class="sub">${esc(c.bank||"Sin entidad")} · vence ${c.dueDay?`día ${c.dueDay}`:"sin día cargado"}</div></div><div style="text-align:right"><div class="money">${money(due)}</div><span class="status ${st[0]}">${st[1]}</span></div></div><div class="chips"><span class="chip">Pagado ${money(paid)}</span><span class="chip ${pending>0?"bad":"good"}">Pendiente ${money(pending)}</span><span class="chip">${cardPurchasesForMonth(c.id,selectedMonth).length} cuotas/compras</span></div><div class="actions">${pending>0?`<button class="primary" onclick="markCardPaid('${c.id}')">Marcar pagada</button>`:""}</div></div>`;
+    }).join("");
+  }
+  function renderMovements(){
+    const inc=incomesForMonth(selectedMonth), exp=expensesForMonth(selectedMonth);
+    $("#incomeList").innerHTML=inc.length?inc.map(x=>`<div class="item"><div class="row"><div class="title"><strong>${esc(x.name)}</strong><span>${esc(x.category||"Otro")}${x.recurring?" · mensual":""}</span></div><div class="money">${money(x.amount)}</div></div><div class="actions"><button class="danger" onclick="delIncome('${x.id}')">Eliminar</button></div></div>`).join(""):`<div class="empty">Sin ingresos para ${monthLabel(selectedMonth)}.</div>`;
+    $("#expenseList").innerHTML=exp.length?exp.map(x=>`<div class="item"><div class="row"><div class="title"><strong>${esc(x.name)}</strong><span>${esc(x.category||"Otro")} · ${esc(x.method||"Otro")}${x.recurring?" · mensual":""}</span></div><div class="money">${money(x.amount)}</div></div><div class="actions"><button class="danger" onclick="delExpense('${x.id}')">Eliminar</button></div></div>`).join(""):`<div class="empty">Sin gastos fuera de tarjeta para ${monthLabel(selectedMonth)}.</div>`;
+  }
+  function renderCards(){
+    $("#cardList").innerHTML=state.cards.length?state.cards.map(c=>{ const out=outstandingCard(c.id,selectedMonth), pct=c.limit>0?Math.min(100,(out/c.limit)*100):0; return `<div class="item"><div class="row"><div class="title"><strong>${esc(c.name)}</strong><span>${esc(c.bank||"Sin entidad")} · cierre ${c.closingDay||"-"} · vence ${c.dueDay||"-"}</span></div><div class="money">${c.limit?money(c.limit):"Sin límite"}</div></div>${c.limit?`<div class="progress"><div style="width:${pct}%"></div></div><div class="mini">Comprometido desde ${monthLabel(selectedMonth)}: ${money(out)} · ${pct.toFixed(0)}% del límite</div>`:""}<div class="actions"><button class="danger" onclick="delCard('${c.id}')">Eliminar</button></div></div>`; }).join(""):`<div class="empty">Agregá tu primera tarjeta.</div>`;
+    $("#purchaseList").innerHTML=state.cardPurchases.length?`<h4 style="margin:0 0 8px">Compras en cuotas</h4>`+state.cardPurchases.map(p=>{ const n=installmentForMonth(p,selectedMonth); return `<div class="item"><div class="row"><div class="title"><strong>${esc(p.name)}</strong><span>${esc(cardName(p.cardId))} · ${esc(p.category||"Otro")}${p.note?` · ${esc(p.note)}`:""}</span></div><div class="money">${money(p.amount)}</div></div><div class="chips"><span class="chip">Total ${money(p.total)}</span><span class="chip">${p.installments} cuotas</span><span class="chip">Desde ${monthLabel(p.startMonth)}</span>${n?`<span class="chip good">Este mes ${n}/${p.installments}</span>`:""}${p.extraFirst?`<span class="chip">Cargo inicial ${money(p.extraFirst)}</span>`:""}</div><div class="actions"><button class="danger" onclick="delPurchase('${p.id}')">Eliminar</button></div></div>`;}).join(""):`<div class="empty">Todavía no cargaste compras con tarjeta.</div>`;
+    $("#chargeList").innerHTML=state.cardCharges.length?`<h4 style="margin:18px 0 8px">Cargos de resumen</h4>`+state.cardCharges.slice().sort((a,b)=>b.month.localeCompare(a.month)).map(c=>`<div class="item"><div class="row"><div class="title"><strong>${esc(c.name)}</strong><span>${esc(cardName(c.cardId))} · ${monthLabel(c.month)}</span></div><div class="money">${money(c.amount)}</div></div><div class="actions"><button class="danger" onclick="delCharge('${c.id}')">Eliminar</button></div></div>`).join(""):"";
+  }
+  function projectedMonth(month,sim=0){ const inc=incomeTotal(month), exp=expenseTotal(month), cards=cardsDueTotal(month)+sim; return {month,inc,exp,cards,free:inc-exp-cards}; }
+  function renderProjection(){
+    const months=Array.from({length:12},(_,i)=>projectedMonth(addMonths(selectedMonth,i))); const max=Math.max(1,...months.map(x=>x.exp+x.cards));
+    $("#projectionList").innerHTML=months.map(x=>`<div class="item"><div class="barrow"><strong style="text-transform:capitalize">${monthLabel(x.month)}</strong><div class="bar"><div class="fill" style="width:${Math.max(2,((x.exp+x.cards)/max)*100)}%"></div></div><div class="money">${money(x.exp+x.cards)}</div></div><div class="chips"><span class="chip good">Ingresos ${money(x.inc)}</span><span class="chip">Gastos ${money(x.exp)}</span><span class="chip">Tarjetas ${money(x.cards)}</span><span class="chip ${x.free<0?"bad":x.inc&&((x.exp+x.cards)/x.inc)>.7?"warn":"good"}">Libre ${money(x.free)}</span></div></div>`).join("");
+  }
+  function fillCardSelects(){ const opts=state.cards.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join(""); ["#purchaseCard","#chargeCard","#paymentCard","#simCard"].forEach(id=>{ const el=$(id); const old=el.value; el.innerHTML=opts||`<option value="">Primero cargá una tarjeta</option>`; if([...el.options].some(o=>o.value===old))el.value=old; }); }
+  function setDefaults(){ ["#purchaseMonth","#chargeMonth","#paymentMonth","#simMonth"].forEach(id=>{ if(!$(id).value)$(id).value=selectedMonth; }); if(!$("#incomeDate").value)$("#incomeDate").value=todayForMonth(selectedMonth); if(!$("#expenseDate").value)$("#expenseDate").value=todayForMonth(selectedMonth); if(!$("#paymentDate").value)$("#paymentDate").value=todayForMonth(selectedMonth); }
 
-        if (editingId === id) resetForm();
-        saveState();
-        showStatus("Movimiento eliminado.");
-        render();
-      }
+  function showView(id){ currentView=id; document.querySelectorAll(".view").forEach(v=>v.classList.toggle("hidden",v.id!==id)); document.querySelectorAll(".nav").forEach(b=>b.classList.toggle("active",b.dataset.view===id)); renderHeader(); }
+  document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>showView(b.dataset.view));
+  $("#prev").onclick=()=>{selectedMonth=addMonths(selectedMonth,-1); clearMonthDefaults(); render();}; $("#next").onclick=()=>{selectedMonth=addMonths(selectedMonth,1); clearMonthDefaults(); render();};
+  function clearMonthDefaults(){ ["#purchaseMonth","#chargeMonth","#paymentMonth","#simMonth","#incomeDate","#expenseDate","#paymentDate"].forEach(id=>$(id).value=""); }
 
-      function resetForm() {
-        editingId = null;
-        elements.form.reset();
-        elements.type.value = "income";
-        elements.date.value = dateForMonth(selectedMonth);
-        closePaymentMethodCreator();
-        syncExpenseTypeField();
-        elements.formTitle.textContent = "Nuevo movimiento";
-        elements.submitButton.textContent = "Agregar movimiento";
-        elements.cancelButton.classList.add("hidden");
-      }
+  $("#incomeForm").onsubmit=e=>{e.preventDefault(); state.incomes.push({id:uid(),name:$("#incomeName").value.trim(),amount:Number($("#incomeAmount").value)||0,date:$("#incomeDate").value,category:$("#incomeCategory").value,recurring:$("#incomeRecurring").checked}); e.target.reset(); save(); clearMonthDefaults(); render();};
+  $("#expenseForm").onsubmit=e=>{e.preventDefault(); state.expenses.push({id:uid(),name:$("#expenseName").value.trim(),amount:Number($("#expenseAmount").value)||0,date:$("#expenseDate").value,category:$("#expenseCategory").value,method:$("#expenseMethod").value,recurring:$("#expenseRecurring").checked}); e.target.reset(); save(); clearMonthDefaults(); render();};
+  $("#cardForm").onsubmit=e=>{e.preventDefault(); state.cards.push({id:uid(),name:$("#cardName").value.trim(),bank:$("#cardBank").value.trim(),limit:Number($("#cardLimit").value)||0,closingDay:Number($("#cardClosing").value)||0,dueDay:Number($("#cardDue").value)||0}); e.target.reset(); save(); render();};
+  $("#purchaseForm").onsubmit=e=>{e.preventDefault(); const total=Number($("#purchaseTotal").value)||0, installments=Math.max(1,Math.floor(Number($("#purchaseInstallments").value)||1)), current=Math.min(installments,Math.max(1,Math.floor(Number($("#purchaseCurrent").value)||1))); state.cardPurchases.push({id:uid(),cardId:$("#purchaseCard").value,name:$("#purchaseName").value.trim(),total,amount:Number($("#purchaseAmount").value)||(total/installments),installments,startInstallment:current,startMonth:$("#purchaseMonth").value,category:$("#purchaseCategory").value,extraFirst:Number($("#purchaseExtra").value)||0,note:$("#purchaseNote").value.trim()}); e.target.reset(); $("#purchaseInstallments").value=1; $("#purchaseCurrent").value=1; $("#purchaseExtra").value=0; save(); clearMonthDefaults(); render();};
+  $("#chargeForm").onsubmit=e=>{e.preventDefault(); state.cardCharges.push({id:uid(),cardId:$("#chargeCard").value,month:$("#chargeMonth").value,name:$("#chargeName").value.trim(),amount:Number($("#chargeAmount").value)||0}); e.target.reset(); save(); clearMonthDefaults(); render();};
+  $("#paymentForm").onsubmit=e=>{e.preventDefault(); state.cardPayments.push({id:uid(),cardId:$("#paymentCard").value,month:$("#paymentMonth").value,amount:Number($("#paymentAmount").value)||0,date:$("#paymentDate").value}); e.target.reset(); save(); clearMonthDefaults(); render();};
 
-      function changeMonth(amount) {
-        selectedMonth = addMonths(selectedMonth, amount);
-        resetForm();
-        render();
-      }
+  function markCardPaid(cardId){ const due=cardDue(cardId,selectedMonth), paid=cardPaid(cardId,selectedMonth), amount=Math.max(0,due-paid); if(amount<=0)return; state.cardPayments.push({id:uid(),cardId,month:selectedMonth,amount,date:todayForMonth(selectedMonth)}); save(); render(); }
+  function delIncome(id){state.incomes=state.incomes.filter(x=>x.id!==id);save();render()} function delExpense(id){state.expenses=state.expenses.filter(x=>x.id!==id);save();render()}
+  function delCard(id){ if(!confirm("¿Eliminar esta tarjeta y todas sus compras, cargos y pagos?"))return; state.cards=state.cards.filter(x=>x.id!==id); state.cardPurchases=state.cardPurchases.filter(x=>x.cardId!==id); state.cardCharges=state.cardCharges.filter(x=>x.cardId!==id); state.cardPayments=state.cardPayments.filter(x=>x.cardId!==id); save();render(); }
+  function delPurchase(id){state.cardPurchases=state.cardPurchases.filter(x=>x.id!==id);save();render()} function delCharge(id){state.cardCharges=state.cardCharges.filter(x=>x.id!==id);save();render()}
 
-      function render() {
-        var movements = state.movements
-          .filter(function (movement) {
-            return movement.date.slice(0, 7) === selectedMonth;
-          })
-          .sort(function (a, b) {
-            return b.date.localeCompare(a.date) || b.id.localeCompare(a.id);
-          });
+  $("#simForm").onsubmit=e=>{e.preventDefault(); const total=Number($("#simTotal").value)||0, n=Math.max(1,Math.floor(Number($("#simInstallments").value)||1)), per=total/n, start=$("#simMonth").value, reserve=Number($("#simReserve").value)||0; const months=Array.from({length:n},(_,i)=>addMonths(start,i)); const baseIncome=incomeTotal(selectedMonth); const impacts=months.map(m=>{ const inc=incomeTotal(m)||baseIncome; const exp=expenseTotal(m), cards=cardsDueTotal(m)+per, committed=exp+cards, ratio=inc>0?committed/inc:(committed>0?1:0), free=inc-committed; return {m,inc,exp,cards,ratio,free}; }); const worst=impacts.reduce((a,b)=>(b.ratio>a.ratio||b.free<a.free)?b:a,impacts[0]); let cls="good", label="Impacto bajo"; if(worst.ratio>.85||worst.free<0){cls="bad";label="Impacto muy alto"} else if(worst.ratio>.70||worst.free<reserve){cls="orange";label="Impacto alto"} else if(worst.ratio>.50){cls="warn";label="Impacto moderado"} const card=state.cards.find(c=>c.id===$("#simCard").value); const futureUsed=card?outstandingCard(card.id,start):0; const limitOk=!card||!card.limit||(futureUsed+total<=card.limit); if(!limitOk){cls="bad";label="Supera el límite estimado de la tarjeta"} $("#simResult").className=`result ${cls}`; $("#simResult").classList.remove("hidden"); $("#simResult").innerHTML=`<strong>${label}</strong><br>Cuota estimada: <strong>${money(per)}</strong>. El mes más exigido sería <strong>${monthLabel(worst.m)}</strong>: quedarían aproximadamente <strong>${money(worst.free)}</strong> libres y tendrías comprometido el <strong>${Math.round(worst.ratio*100)}%</strong> de los ingresos considerados.${card&&card.limit?`<br>En ${esc(card.name)}, el compromiso estimado después de sumar esta compra sería ${money(futureUsed+total)} sobre un límite de ${money(card.limit)}.`:""}<br><span class="mini">La simulación usa los ingresos futuros cargados; si un mes no tiene ingresos cargados, toma como referencia los ingresos de ${monthLabel(selectedMonth)}.</span>`; };
 
-        var income = sumAmounts(movements.filter(function (movement) {
-          return movement.type === "income";
-        }));
-        var expense = sumAmounts(movements.filter(function (movement) {
-          return movement.type === "expense";
-        }));
-        var balance = income - expense;
+  $("#exportBtn").onclick=()=>{ const blob=new Blob([JSON.stringify({app:"Mi Plata 2.0",version:2,exportedAt:new Date().toISOString(),data:state},null,2)],{type:"application/json"}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=`mi-plata-v2-${selectedMonth}.json`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),500); };
+  $("#importBtn").onclick=()=>$("#importFile").click(); $("#importFile").onchange=e=>{ const f=e.target.files?.[0]; if(!f)return; const r=new FileReader(); r.onload=()=>{try{const p=JSON.parse(String(r.result)); const d=p.data||p; const imported=d.version===2||d.incomes?normalizeV2(d):(d.movements||d.purchases?migrateClassicPayload(d):migrateLegacy(d)); if(!confirm("¿Importar este respaldo y reemplazar los datos actuales de Mi Plata 2.0?"))return; Object.keys(state).forEach(k=>delete state[k]); Object.assign(state,imported); save(); render();}catch(err){alert("No pude importar ese archivo.")}finally{e.target.value=""}}; r.readAsText(f); };
 
-        elements.monthLabel.textContent = formatMonth(selectedMonth);
-        elements.incomeTotal.textContent = formatMoney(income);
-        elements.expenseTotal.textContent = formatMoney(expense);
-        elements.balanceTotal.textContent = formatMoney(balance);
-        elements.balanceCard.classList.toggle("negative", balance < 0);
-        elements.movementCount.textContent = String(movements.length);
-        elements.listSubtitle.textContent = movements.length === 1
-          ? "1 movimiento registrado."
-          : movements.length + " movimientos registrados.";
-
-        elements.emptyState.classList.toggle("hidden", movements.length > 0);
-        elements.movementList.classList.toggle("hidden", movements.length === 0);
-        elements.movementList.innerHTML = movements.map(movementHtml).join("");
-      }
-
-      function movementHtml(movement) {
-        var isIncome = movement.type === "income";
-        var title = isIncome
-          ? (movement.description || "Ingreso")
-          : (movement.expenseType || movement.description || "Egreso");
-        var detail = !isIncome && movement.description && movement.description !== title
-          ? " · " + movement.description
-          : "";
-        var association = movement.paymentMethod ? " · " + movement.paymentMethod : "";
-        var sign = isIncome ? "+ " : "- ";
-
-        return '<article class="movement ' + (isIncome ? "income" : "expense") + '">' +
-          '<div class="movement-icon" aria-hidden="true">' + (isIncome ? "↑" : "↓") + '</div>' +
-          '<div class="movement-info">' +
-            '<strong>' + escapeHtml(title) + '</strong>' +
-            '<span>' + formatDate(movement.date) + ' · ' + (isIncome ? "Ingreso" : "Egreso") + escapeHtml(association + detail) + '</span>' +
-          '</div>' +
-          '<div class="movement-side">' +
-            '<span class="movement-amount">' + sign + formatMoney(movement.amount) + '</span>' +
-            '<div class="movement-actions">' +
-              '<button class="secondary small-button" type="button" data-action="edit" data-id="' + escapeHtml(movement.id) + '">Editar</button>' +
-              '<button class="danger small-button" type="button" data-action="delete" data-id="' + escapeHtml(movement.id) + '">Eliminar</button>' +
-            '</div>' +
-          '</div>' +
-        '</article>';
-      }
-
-      function loadState() {
-        try {
-          var saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-          if (!saved || !Array.isArray(saved.movements)) return { movements: [] };
-
-          return {
-            movements: saved.movements.map(normalizeMovement).filter(Boolean)
-          };
-        } catch (error) {
-          return { movements: [] };
-        }
-      }
-
-      function normalizeMovement(movement) {
-        if (!movement || (movement.type !== "income" && movement.type !== "expense")) return null;
-
-        var amount = Number(movement.amount);
-        var date = String(movement.date || "");
-        if (!Number.isFinite(amount) || amount <= 0 || !validDate(date)) return null;
-
-        return {
-          id: String(movement.id || createId()),
-          type: movement.type,
-          paymentMethod: String(movement.paymentMethod || "").trim().slice(0, 50),
-          amount: amount,
-          date: date,
-          expenseType: movement.type === "expense"
-            ? String(movement.expenseType || "").slice(0, 50)
-            : "",
-          description: String(movement.description || "").slice(0, 80)
-        };
-      }
-
-      function syncExpenseTypeField() {
-        var isExpense = elements.type.value === "expense";
-        elements.expenseTypeField.classList.toggle("hidden", !isExpense);
-        elements.expenseType.required = isExpense;
-      }
-
-      function refreshPaymentMethods() {
-        var selectedValue = elements.paymentMethod.value;
-        elements.paymentMethod.innerHTML = '<option value="">Sin asociar</option>' + getSharedPaymentMethods().map(function (method) {
-          return '<option value="' + escapeHtml(method) + '">' + escapeHtml(method) + '</option>';
-        }).join("");
-        elements.paymentMethod.value = selectedValue;
-      }
-
-      function openPaymentMethodCreator() {
-        elements.paymentMethodCreator.classList.remove("hidden");
-        elements.createPaymentMethodButton.classList.add("hidden");
-        elements.newPaymentMethod.value = "";
-        elements.newPaymentMethod.focus();
-      }
-
-      function closePaymentMethodCreator() {
-        elements.paymentMethodCreator.classList.add("hidden");
-        elements.createPaymentMethodButton.classList.remove("hidden");
-        elements.newPaymentMethod.value = "";
-      }
-
-      function saveNewPaymentMethod() {
-        var method = elements.newPaymentMethod.value.trim().slice(0, 50);
-        if (!method) {
-          showStatus("Escribí el nombre del medio de pago.", true);
-          elements.newPaymentMethod.focus();
-          return;
-        }
-        elements.paymentMethod.value = rememberPaymentMethod(method);
-        closePaymentMethodCreator();
-        showStatus("Medio de pago guardado y seleccionado.");
-      }
-
-      function getSharedPaymentMethods() {
-        var savedMethods = safeRead(PAYMENT_METHODS_KEY, []);
-        if (!Array.isArray(savedMethods)) savedMethods = [];
-        var purchasesState = safeRead(PURCHASES_KEY, { purchases: [] });
-        var movementMethods = state.movements.map(function (movement) { return movement.paymentMethod; });
-        var purchaseMethods = Array.isArray(purchasesState.purchases)
-          ? purchasesState.purchases.map(function (purchase) { return String(purchase.card || ""); })
-          : [];
-        return uniqueValues(DEFAULT_PAYMENT_METHODS.concat(savedMethods, movementMethods, purchaseMethods));
-      }
-
-      function rememberPaymentMethod(value) {
-        if (!value) return "";
-        var savedMethods = safeRead(PAYMENT_METHODS_KEY, []);
-        if (!Array.isArray(savedMethods)) savedMethods = [];
-        localStorage.setItem(PAYMENT_METHODS_KEY, JSON.stringify(uniqueValues(savedMethods.concat(value))));
-        refreshPaymentMethods();
-        return getSharedPaymentMethods().find(function (method) {
-          return method.toLocaleLowerCase("es") === String(value).toLocaleLowerCase("es");
-        }) || String(value);
-      }
-
-      function uniqueValues(values) {
-        var seen = {};
-        return values.map(function (value) { return String(value || "").trim(); })
-          .filter(function (value) {
-            var key = value.toLocaleLowerCase("es");
-            if (!value || seen[key]) return false;
-            seen[key] = true;
-            return true;
-          })
-          .sort(function (a, b) { return a.localeCompare(b, "es"); });
-      }
-
-      function safeRead(key, fallback) {
-        try {
-          var value = JSON.parse(localStorage.getItem(key));
-          return value === null ? fallback : value;
-        } catch (error) {
-          return fallback;
-        }
-      }
-
-      function exportAllData() {
-        var movementsState = safeRead(STORAGE_KEY, { movements: [] });
-        var purchasesState = safeRead(PURCHASES_KEY, { purchases: [] });
-        var payload = {
-          app: "Mi plata al día",
-          version: 1,
-          exportedAt: new Date().toISOString(),
-          movements: Array.isArray(movementsState.movements) ? movementsState.movements : [],
-          purchases: Array.isArray(purchasesState.purchases) ? purchasesState.purchases : [],
-          paymentMethods: getSharedPaymentMethods()
-        };
-        downloadBackup(payload);
-        showStatus("Datos exportados correctamente.");
-      }
-
-      function downloadBackup(payload) {
-        var blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
-        var url = URL.createObjectURL(blob);
-        var link = document.createElement("a");
-        link.href = url;
-        link.download = "mi-plata-respaldo-" + todayValue() + ".json";
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        window.setTimeout(function () { URL.revokeObjectURL(url); }, 0);
-      }
-
-      function saveState() {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      }
-
-      function sumAmounts(movements) {
-        return movements.reduce(function (total, movement) {
-          return total + movement.amount;
-        }, 0);
-      }
-
-      function monthKey(date) {
-        return date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0");
-      }
-
-      function addMonths(value, amount) {
-        var parts = value.split("-").map(Number);
-        return monthKey(new Date(parts[0], parts[1] - 1 + amount, 1));
-      }
-
-      function dateForMonth(value) {
-        var today = new Date();
-        if (monthKey(today) === value) {
-          return today.getFullYear() + "-" +
-            String(today.getMonth() + 1).padStart(2, "0") + "-" +
-            String(today.getDate()).padStart(2, "0");
-        }
-        return value + "-01";
-      }
-
-      function todayValue() {
-        var today = new Date();
-        return today.getFullYear() + "-" +
-          String(today.getMonth() + 1).padStart(2, "0") + "-" +
-          String(today.getDate()).padStart(2, "0");
-      }
-
-      function validDate(value) {
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-        var parts = value.split("-").map(Number);
-        var date = new Date(parts[0], parts[1] - 1, parts[2]);
-        return date.getFullYear() === parts[0] &&
-          date.getMonth() === parts[1] - 1 &&
-          date.getDate() === parts[2];
-      }
-
-      function formatMonth(value) {
-        var parts = value.split("-").map(Number);
-        return new Intl.DateTimeFormat("es-AR", {
-          month: "long",
-          year: "numeric"
-        }).format(new Date(parts[0], parts[1] - 1, 1));
-      }
-
-      function formatDate(value) {
-        var parts = value.split("-").map(Number);
-        return new Intl.DateTimeFormat("es-AR", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric"
-        }).format(new Date(parts[0], parts[1] - 1, parts[2]));
-      }
-
-      function formatMoney(value) {
-        return new Intl.NumberFormat("es-AR", {
-          style: "currency",
-          currency: "ARS",
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
-        }).format(value);
-      }
-
-      function showStatus(message, isError) {
-        window.clearTimeout(statusTimer);
-        elements.statusMessage.textContent = message;
-        elements.statusMessage.style.color = isError ? "var(--expense)" : "var(--income)";
-        statusTimer = window.setTimeout(function () {
-          elements.statusMessage.textContent = "";
-        }, 3200);
-      }
-
-      function escapeHtml(value) {
-        return String(value)
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;")
-          .replace(/'/g, "&#039;");
-      }
-
-      function createId() {
-        if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
-        return Date.now().toString(36) + Math.random().toString(36).slice(2);
-      }
-
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", function () {
-          navigator.serviceWorker.register("./sw.js");
-        });
-      }
-    }());
-  </script>
+  render();
+  if("serviceWorker" in navigator && location.protocol!=="file:") navigator.serviceWorker.register("./sw.js").catch(()=>{});
+</script>
 </body>
 </html>
