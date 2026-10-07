@@ -1,11 +1,11 @@
 {
   "name": "Mi plata al día",
   "short_name": "Mi plata",
-  "description": "Registro simple de ingresos, egresos y saldo mensual.",
+  "description": "Control de ingresos, gastos, tarjetas de crédito, cuotas y proyecciones.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f5f7f9",
+  "background_color": "#f4f7f8",
   "theme_color": "#126c74",
   "icons": [
     {
